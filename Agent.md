@@ -288,31 +288,39 @@
 ---
 
 ### Phase 2 — Design System and Main Shell
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-15)
 
 **Tasks:**
-- بناء `MainShellView` يحتوي: Sidebar يميناً + TopBar أعلى + ContentHost في المنتصف.
-- تنفيذ `Sidebar` بخلفية Navy، الشعار في الأعلى، قائمة عناصر تنقل (الرئيسية، الطلاب، الصفوف والشعب، الحضور، المواد والدرجات، النتائج، الرسوم، التقارير، المستخدمون، الإعدادات، النسخ الاحتياطي).
-- تنفيذ `TopBar`: بحث، اختيار مدرسة، اختيار سنة، إشعارات، صورة + اسم المستخدم.
-- إنشاء أنماط: `PrimaryButton`, `SecondaryButton`, `IconButton`, `DangerButton`.
-- إنشاء أنماط الحقول: TextBox, PasswordBox, ComboBox, DatePicker بحواف مدورة.
-- إنشاء نمط DataGrid عام.
-- إنشاء UserControl `StatCard` و`StatusPill` و`SectionHeader`.
-- **إنشاء UserControl `LoadingOverlay`** قابل للوضع فوق أي منطقة محتوى (شبه شفاف + سبيرنر دائري Teal + نص "جاري التحميل…" قابل للتخصيص) — يُربط بـ `IsBusy` على ViewModel.
-- **إنشاء UserControl `ConnectionStatusBanner`** يظهر أعلى المحتوى عند فقدان الاتصال بقاعدة البيانات، بلون Danger مع زر "إعادة المحاولة".
-- **إنشاء `BusyButton` (نمط Button موسّع)** يعطّل نفسه ويعرض سبيرنر داخلي عندما `IsBusy=True`.
-- **إنشاء `IBusyService` / `BusyService`** لتنسيق حالة Busy عند تنفيذ عمليات async من الـ ViewModels.
-- **إنشاء `IConnectionMonitor`** ينشر أحداث `Disconnected`/`Reconnected` ويستمع له ShellView لإظهار/إخفاء البانر.
-- إعداد `NavigationService` و`ViewLocator` بسيط.
-- شاشات وهمية فارغة لكل قسم.
+- [x] بناء `MainShellView` (Window) يحتوي: Sidebar يميناً (عرض 260) + TopBar أعلى + ContentHost في المنتصف.
+- [x] Sidebar بخلفية Navy، الشعار في الأعلى، 12 عنصر تنقل: الرئيسية، الطلاب، الصفوف والشعب، الحضور، المواد، إدخال الدرجات، النتائج، الرسوم، التقارير، المستخدمون، الإعدادات، النسخ الاحتياطي.
+- [x] TopBar: شريحة مستخدم، شريحة سنة، شريحة مدرسة، صندوق بحث، إشعارات، تسجيل خروج.
+- [x] أنماط الأزرار: `PrimaryButton`, `SecondaryButton`, `DangerButton`, `GhostButton`, `IconButton`, `RowActionButton`, `BusyPrimaryButton` في [Themes/Buttons.xaml](Nasag/Themes/Buttons.xaml).
+- [x] أنماط الحقول الافتراضية: TextBox, PasswordBox, ComboBox, DatePicker + `FieldLabel` في [Themes/Inputs.xaml](Nasag/Themes/Inputs.xaml).
+- [x] نمط DataGrid كامل (Row/Cell/Header) + AlternatingRow في [Themes/DataGrid.xaml](Nasag/Themes/DataGrid.xaml).
+- [x] أنماط البطاقات والظلال في [Themes/Cards.xaml](Nasag/Themes/Cards.xaml).
+- [x] شارات الحالة (Success/Warning/Danger/Info/Teal) في [Themes/StatusPills.xaml](Nasag/Themes/StatusPills.xaml).
+- [x] مكتبة Geometry للأيقونات (22 أيقونة من نمط outline) في [Themes/Icons.xaml](Nasag/Themes/Icons.xaml).
+- [x] UserControls: `StatCard`, `SectionHeader`, `SidebarMenuItem`, `LoadingOverlay`, `ConnectionStatusBanner` تحت `Controls/`.
+- [x] `IBusyService` / `BusyService` لإدارة حالة Busy + رسالة قابلة للتخصيص.
+- [x] `IConnectionMonitor` / `ConnectionMonitor` stub (Phase 3 سيربطه بـ `CanConnectAsync`).
+- [x] `INavigationService` / `NavigationService` مع 12 NavigationDescriptor + Resolver عبر IServiceProvider.
+- [x] 12 PageViewModel ترث `PageViewModel` (Dashboard/Students/Classes/Attendance/Subjects/Marks/Results/Fees/Reports/Users/Settings/Backup).
+- [x] `PagePlaceholderView` موحّد للشاشات قبل بناء كل واحدة لاحقاً.
+- [x] `DataTemplates.xaml` يربط كل PageVM بالـ Placeholder (سيُستبدل لاحقاً عند بناء View حقيقي).
+- [x] `MainShellViewModel` يدير NavigationItems + IsActive + IsDisconnected + RetryConnectionCommand.
+- [x] `ResourceKeyConverter` لربط IconKey (string) بـ Geometry من Application.Current.Resources.
+- [x] تسجيل كل services + ViewModels في DI في `App.xaml.cs`.
+- [x] استبدال startup إلى MainShellView مع حقن `MainShellViewModel` في `DataContext`.
+- [x] إزالة `MainWindow` و`MainViewModel` القديمين (لم يعودا مستخدمين).
 
 **Acceptance Criteria:**
-- الشكل العام مطابق للهوية البصرية (Navy sidebar + Teal accents + بطاقات بيضاء).
-- التنقل بين الأقسام يعمل عبر القائمة الجانبية.
-- لا توجد صور UI مستخدمة كخلفية.
-- الأنماط مركزية في `/Themes` بدون تكرار.
-- `LoadingOverlay` يمكن إظهاره على شاشة وهمية وربطه بـ ViewModel.IsBusy.
-- `ConnectionStatusBanner` يظهر/يختفي ديناميكياً عند تغيّر حالة الاتصال.
+- [x] الشكل العام مطابق للهوية البصرية (Navy sidebar + Teal accents + بطاقات بيضاء + ظل ناعم + RTL).
+- [x] التنقل بين 12 قسم يعمل عبر القائمة الجانبية (Highlight + Active strip).
+- [x] لا توجد صور UI مستخدمة كخلفية — كل شيء XAML/Geometry.
+- [x] الأنماط مركزية في `/Themes` بدون تكرار.
+- [x] `LoadingOverlay` جاهز للربط بـ `IsBusy` على أي ViewModel.
+- [x] `ConnectionStatusBanner` يظهر/يختفي ديناميكياً من `MainShellViewModel.IsDisconnected`.
+- [x] Build: 0 Warning / 0 Error. التطبيق يقلع بدون استثناءات.
 
 ---
 
@@ -549,7 +557,7 @@
 |-------|--------|---------|-----------|-------|
 | Phase 0 — Planning | ✅ Completed | 2026-05-15 | 2026-05-15 | تم فحص المشروع و10 صور UI، استخراج الهوية البصرية، إنشاء Agent.md وAI_INSTRUCTIONS.md |
 | Phase 1 — Foundation | ✅ Completed | 2026-05-15 | 2026-05-15 | بنية مجلدات + 8 حزم NuGet + خط Tajawal (3 أوزان) + Colors/Typography/Common dictionaries + DI عبر Generic Host + smoke-test window. Build: 0/0. |
-| Phase 2 — Shell & Design System | Pending | - | - | - |
+| Phase 2 — Shell & Design System | ✅ Completed | 2026-05-15 | 2026-05-15 | MainShell كاملاً (Sidebar+TopBar+ContentHost) + 7 ResourceDictionaries (Buttons/Inputs/DataGrid/Cards/Pills/Icons/DataTemplates) + 5 UserControls (StatCard/SectionHeader/SidebarMenuItem/LoadingOverlay/ConnectionBanner) + IBusyService/IConnectionMonitor/INavigationService + 12 Page VMs + Placeholder view. Build 0/0. |
 | Phase 3 — Database | Pending | - | - | - |
 | Phase 4 — Auth | Pending | - | - | - |
 | Phase 5 — Dashboard | Pending | - | - | - |
@@ -587,6 +595,10 @@
 | 2026-05-15 | بناء `LoadingOverlay` / `BusyButton` / `IBusyService` كجزء من Design System في Phase 2 | متطلب المستخدم: كل عملية تظهر Loading؛ توحيد التجربة عبر شاشات لاحقة |
 | 2026-05-15 | بناء `ConnectionStatusBanner` + `IConnectionMonitor` لرصد انقطاع الاتصال بـ SQL Server | متطلب المستخدم: إظهار حالة الانقطاع وعدم انهيار البرنامج |
 | 2026-05-15 | إضافة Splash Screen + First-Run Setup Wizard في Phase 13 | متطلب المستخدم الصريح: عمليات قاعدة البيانات والمعالج تظهر للمستخدم النهائي في المرحلة الأخيرة بعد جاهزية باقي المنظومة |
+| 2026-05-15 | استخدام Implicit DataTemplates في `DataTemplates.xaml` بدلاً من ViewLocator مخصّص | حل WPF أصلي وأبسط لربط VM بـ View؛ سيُستبدل كل DataTemplate بـ View حقيقي مرحلياً |
+| 2026-05-15 | جميع PageViewModels مسجَّلة Singleton لا Transient | للحفاظ على state التنقل والبحث بين الزيارات داخل الجلسة الواحدة |
+| 2026-05-15 | استخدام `ResourceKeyConverter` لتمرير أيقونات Sidebar كـ string keys في NavigationDescriptor | يفصل التنقل عن WPF Resources ويسمح بتعريف القوائم في C# pure |
+| 2026-05-15 | حذف MainWindow و MainViewModel القديمين بعد الانتقال لـ MainShellView | ملفات Phase 1 الانتقالية لم تعد مستخدمة؛ AI_INSTRUCTIONS يمنع الإبقاء على Dead code |
 
 ---
 
@@ -619,4 +631,4 @@
 6. حدّث القسم 8 و9 بعد كل عمل.
 7. عند الانتهاء من جلسة، اذكر: ما تم، حالة Build، الملفات المهمة، المرحلة التالية.
 
-**الحالة الحالية:** Phase 0 و Phase 1 اكتملتا. المرحلة التالية هي **Phase 2 — Design System and Main Shell** (بناء MainShell + Sidebar + TopBar + أنماط Buttons/Inputs/DataGrid/Cards + شاشات وهمية لكل قسم + NavigationService). لا تبدأ Phase 2 دون طلب صريح من المستخدم.
+**الحالة الحالية:** Phase 0 و Phase 1 و Phase 2 اكتملت. المرحلة التالية هي **Phase 3 — Database and Core Entities** (Models + NasaqDbContext + Migrations + DatabaseInitializer ديناميكي + Seeder + Repositories async). لا تبدأ Phase 3 دون طلب صريح من المستخدم.

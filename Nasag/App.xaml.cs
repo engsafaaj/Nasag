@@ -4,7 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Nasag.Services;
-using Nasag.ViewModels;
+using Nasag.ViewModels.Pages;
+using Nasag.ViewModels.Shell;
+using Nasag.Views.Shell;
 
 namespace Nasag;
 
@@ -30,11 +32,11 @@ public partial class App : Application
 
         Host.Start();
 
-        var mainWindow = new MainWindow
+        var shell = new MainShellView
         {
-            DataContext = GetService<MainViewModel>()
+            DataContext = GetService<MainShellViewModel>()
         };
-        mainWindow.Show();
+        shell.Show();
 
         base.OnStartup(e);
     }
@@ -52,8 +54,27 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        // Cross-cutting services
         services.AddSingleton<IAppInfoService, AppInfoService>();
+        services.AddSingleton<IBusyService, BusyService>();
+        services.AddSingleton<IConnectionMonitor, ConnectionMonitor>();
+        services.AddSingleton<INavigationService, NavigationService>();
 
-        services.AddTransient<MainViewModel>();
+        // Shell
+        services.AddSingleton<MainShellViewModel>();
+
+        // Page VMs (singletons so they keep their state during the session)
+        services.AddSingleton<DashboardViewModel>();
+        services.AddSingleton<StudentsViewModel>();
+        services.AddSingleton<ClassesViewModel>();
+        services.AddSingleton<AttendanceViewModel>();
+        services.AddSingleton<SubjectsViewModel>();
+        services.AddSingleton<MarksViewModel>();
+        services.AddSingleton<ResultsViewModel>();
+        services.AddSingleton<FeesViewModel>();
+        services.AddSingleton<ReportsViewModel>();
+        services.AddSingleton<UsersViewModel>();
+        services.AddSingleton<SettingsViewModel>();
+        services.AddSingleton<BackupViewModel>();
     }
 }
