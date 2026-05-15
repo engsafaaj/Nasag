@@ -11,7 +11,8 @@
         Title="نَسَق لإدارة المدارس"
         Height="800" Width="1366"
         MinHeight="640" MinWidth="1100"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized">
 
     <Window.Resources>
         <helpers:ResourceKeyConverter x:Key="ResourceKeyConverter" />
@@ -51,17 +52,20 @@
                         <StackPanel Orientation="Horizontal">
                             <Border Width="28" Height="28" CornerRadius="14"
                                     Background="{StaticResource TealPrimaryBrush}">
-                                <TextBlock Text="م"
+                                <TextBlock Text="{Binding UserInitial}"
                                            Foreground="White"
                                            FontWeight="Bold"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Text="{Binding UserDisplayName}"
-                                       Style="{StaticResource BodyTextStyle}"
-                                       FontWeight="Medium"
-                                       VerticalAlignment="Center"
-                                       Margin="8,0,0,0" />
+                            <StackPanel VerticalAlignment="Center" Margin="8,0,0,0">
+                                <TextBlock Text="{Binding UserDisplayName}"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           FontWeight="Medium" />
+                                <TextBlock Text="{Binding UserRoleName}"
+                                           Style="{StaticResource MutedTextStyle}"
+                                           FontSize="{StaticResource FontSizeXs}" />
+                            </StackPanel>
                             <Path Data="{StaticResource IconChevronDown}"
                                   Stroke="{StaticResource TextSecondaryBrush}"
                                   StrokeThickness="1.6"
@@ -158,7 +162,9 @@
 
                     <Button Grid.Column="6"
                             Style="{StaticResource IconButton}"
-                            Margin="6,0,0,0">
+                            Margin="6,0,0,0"
+                            ToolTip="تسجيل الخروج"
+                            Command="{Binding LogoutCommand}">
                         <Path Data="{StaticResource IconLogout}"
                               Stroke="{StaticResource TextSecondaryBrush}"
                               StrokeThickness="1.6"

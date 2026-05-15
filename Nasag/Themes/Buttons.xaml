@@ -51,6 +51,20 @@
         <Setter Property="Template" Value="{StaticResource RoundedButtonTemplate}" />
     </Style>
 
+    <!-- Navy primary: solid navy with white text — used by Login and emphasized confirmations -->
+    <Style x:Key="NavyPrimaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource NavyDeepBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource NavyDeepBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="{StaticResource TajawalFont}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBase}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="18,9" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template" Value="{StaticResource RoundedButtonTemplate}" />
+    </Style>
+
     <!-- Secondary: white with grey border, navy text -->
     <Style x:Key="SecondaryButton" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource CardSurfaceBrush}" />

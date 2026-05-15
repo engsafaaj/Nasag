@@ -8,8 +8,10 @@ using Microsoft.Extensions.Hosting;
 using Nasag.Data;
 using Nasag.Repositories;
 using Nasag.Services;
+using Nasag.ViewModels.Auth;
 using Nasag.ViewModels.Pages;
 using Nasag.ViewModels.Shell;
+using Nasag.Views.Auth;
 using Nasag.Views.Shell;
 
 namespace Nasag;
@@ -17,6 +19,9 @@ namespace Nasag;
 public partial class App : Application
 {
     public static IHost? Host { get; private set; }
+
+    private LoginView? _loginWindow;
+    private MainShellView? _shellWindow;
 
     public static T GetService<T>() where T : class
         => Host?.Services.GetRequiredService<T>()
@@ -38,7 +43,7 @@ public partial class App : Application
 
         await Host.StartAsync();
 
-        // Initialize database (apply pending migrations + seed if empty).
+        // 1) Initialize database (apply pending migrations + seed if empty).
         var initializer = GetService<IDatabaseInitializer>();
         var result = await Task.Run(() => initializer.InitializeAsync()).ConfigureAwait(true);
 
@@ -54,11 +59,12 @@ public partial class App : Application
             return;
         }
 
-        var shell = new MainShellView
-        {
-            DataContext = GetService<MainShellViewModel>()
-        };
-        shell.Show();
+        // 2) Wire auth lifecycle: Login -> Shell -> Login on logout.
+        var currentUser = GetService<ICurrentUserService>();
+        currentUser.SignedIn += OnSignedIn;
+        currentUser.SignedOut += OnSignedOut;
+
+        ShowLoginWindow();
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -70,6 +76,60 @@ public partial class App : Application
             Host = null;
         }
         base.OnExit(e);
+    }
+
+    private void ShowLoginWindow()
+    {
+        _loginWindow = new LoginView
+        {
+            DataContext = GetService<LoginViewModel>()
+        };
+        _loginWindow.Closed += OnLoginClosed;
+        MainWindow = _loginWindow;
+        _loginWindow.Show();
+    }
+
+    private void OnSignedIn(object? sender, EventArgs e)
+    {
+        // Spin up the shell, swap MainWindow, then close the login window.
+        _shellWindow = new MainShellView
+        {
+            DataContext = GetService<MainShellViewModel>()
+        };
+        _shellWindow.Closed += OnShellClosed;
+        MainWindow = _shellWindow;
+        _shellWindow.Show();
+
+        if (_loginWindow is not null)
+        {
+            _loginWindow.Closed -= OnLoginClosed;
+            _loginWindow.Close();
+            _loginWindow = null;
+        }
+    }
+
+    private void OnSignedOut(object? sender, EventArgs e)
+    {
+        ShowLoginWindow();
+
+        if (_shellWindow is not null)
+        {
+            _shellWindow.Closed -= OnShellClosed;
+            _shellWindow.Close();
+            _shellWindow = null;
+        }
+    }
+
+    private void OnLoginClosed(object? sender, EventArgs e)
+    {
+        // User dismissed the login window without signing in -> exit the app.
+        if (Current is not null) Current.Shutdown(0);
+    }
+
+    private void OnShellClosed(object? sender, EventArgs e)
+    {
+        // Closing the shell directly (X button) ends the session.
+        if (Current is not null) Current.Shutdown(0);
     }
 
     private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
@@ -100,6 +160,11 @@ public partial class App : Application
         services.AddSingleton<IBusyService, BusyService>();
         services.AddSingleton<IConnectionMonitor, ConnectionMonitor>();
         services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<IAuthService, AuthService>();
+        services.AddSingleton<ICurrentUserService, CurrentUserService>();
+
+        // Auth
+        services.AddTransient<LoginViewModel>();
 
         // Shell
         services.AddSingleton<MainShellViewModel>();

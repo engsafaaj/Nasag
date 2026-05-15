@@ -357,20 +357,26 @@
 ---
 
 ### Phase 4 — Authentication and Users
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-15)
 
 **Tasks:**
-- شاشة `LoginView` مطابقة للتصميم رقم (2): بطاقة مركزية، شعار، حقلي مستخدم وكلمة مرور، خيار تذكرني، زر تسجيل دخول.
-- `AuthService` يتحقق من Hash كلمة المرور (BCrypt أو PBKDF2).
-- `CurrentUserService` يحتفظ بالمستخدم الحالي في الذاكرة.
-- بعد الدخول الناجح: استبدال نافذة Login بـ MainShellView.
-- ظهور اسم المستخدم وصورته في TopBar.
-- زر تسجيل خروج.
+- [x] [LoginView](Nasag/Views/Auth/LoginView.xaml) — تخطيط من جزأين: لوحة Navy يسار (شعار + اسم البرنامج + شريحة وصف) + لوحة بيضاء يمين (نموذج الدخول): عنوان + رسالة خطأ + اسم المستخدم + كلمة المرور + تذكّرني + رابط نسيت كلمة المرور + زر Teal أساسي + قسيمة الحساب التجريبي (admin/admin123).
+- [x] [IAuthService](Nasag/Services/IAuthService.cs) + [AuthService](Nasag/Services/AuthService.cs): يبحث المستخدم async، يفحص `IsActive`، يتحقق من BCrypt.Verify، يحدّث `LastLoginAt`، يعيد `AuthResult` بحالات (Success/InvalidCredentials/AccountDisabled/ConnectionError/Unknown) ورسائل عربية.
+- [x] [ICurrentUserService](Nasag/Services/ICurrentUserService.cs) + [CurrentUserService](Nasag/Services/CurrentUserService.cs): يحفظ `User` الحالي + يولّد `DisplayName`/`Initial` + يبث `SignedIn`/`SignedOut`.
+- [x] [LoginViewModel](Nasag/ViewModels/Auth/LoginViewModel.cs): Username/Password/RememberMe/ErrorMessage/IsBusy + `LoginCommand` async مع `CanExecute` يمنع الإرسال أثناء التحميل أو عند فراغ الحقول.
+- [x] PasswordBox مربوط عبر code-behind بـ `vm.Password` (WPF لا يسمح bind مباشر لأسباب أمنية).
+- [x] [App.OnStartup](Nasag/App.xaml.cs) أصبح مدير دورة حياة: يُهيّئ Host → DB → يفتح `LoginView`؛ عند `SignedIn` يفتح `MainShellView` ويُغلق Login؛ عند `SignedOut` يفعل العكس؛ `ShutdownMode=OnExplicitShutdown` في `App.xaml` لمنع الإغلاق التلقائي أثناء التبديل.
+- [x] [MainShellViewModel](Nasag/ViewModels/Shell/MainShellViewModel.cs): يحقن `ICurrentUserService`، يعرض `UserDisplayName`/`UserInitial`/`UserRoleName` (مع تحديث ديناميكي عبر `SignedIn/Out`)، أضاف `LogoutCommand`، يُعيد التنقل إلى Dashboard تلقائياً عند تسجيل دخول جديد لتجنّب deep-link مزدوج (لأن الـ VM Singleton).
+- [x] [MainShellView TopBar](Nasag/Views/Shell/MainShellView.xaml): شريحة المستخدم تعرض الحرف الأول + الاسم + اسم الدور؛ زر تسجيل الخروج مربوط بـ `LogoutCommand`.
+- [x] [Converters.xaml](Nasag/Themes/Converters.xaml) + [InverseBoolToVisibilityConverter](Nasag/Helpers/InverseBoolToVisibilityConverter.cs) جديدان (سيُستخدمان في الشاشات اللاحقة أيضاً).
 
 **Acceptance Criteria:**
-- الدخول بـ admin / admin123 يعمل.
-- كلمة مرور خاطئة تُظهر خطأ.
-- المستخدم يظهر في الشريط العلوي.
+- [x] الدخول بـ `admin` / `admin123` يعمل ويفتح MainShellView (BCrypt verify ناجح على hash السي).
+- [x] كلمة مرور خاطئة تُظهر بانر أحمر بالعربية: «اسم المستخدم أو كلمة المرور غير صحيحة.».
+- [x] حساب موقوف يُظهر رسالة مخصصة: «هذا الحساب موقوف. يرجى التواصل مع المدير.».
+- [x] فشل الاتصال بـ SQL أثناء الدخول يُعرض كرسالة عربية واضحة لا crash.
+- [x] اسم المستخدم وحرفه الأول واسم دوره ظاهرون في TopBar؛ زر تسجيل الخروج يُعيد المستخدم إلى نافذة Login.
+- [x] Build: 0 Warning / 0 Error؛ التطبيق يقلع ويعرض شاشة Login بدون استثناءات.
 
 ---
 
@@ -561,7 +567,7 @@
 | Phase 1 — Foundation | ✅ Completed | 2026-05-15 | 2026-05-15 | بنية مجلدات + 8 حزم NuGet + خط Tajawal (3 أوزان) + Colors/Typography/Common dictionaries + DI عبر Generic Host + smoke-test window. Build: 0/0. |
 | Phase 2 — Shell & Design System | ✅ Completed | 2026-05-15 | 2026-05-15 | MainShell كاملاً (Sidebar+TopBar+ContentHost) + 7 ResourceDictionaries (Buttons/Inputs/DataGrid/Cards/Pills/Icons/DataTemplates) + 5 UserControls (StatCard/SectionHeader/SidebarMenuItem/LoadingOverlay/ConnectionBanner) + IBusyService/IConnectionMonitor/INavigationService + 12 Page VMs + Placeholder view. Build 0/0. |
 | Phase 3 — Database | ✅ Completed | 2026-05-15 | 2026-05-15 | 17 Entities + Enums + NasaqDbContext (Fluent API كامل) + InitialCreate migration + IDatabaseInitializer (Migrate ديناميكياً) + DbSeeder (4 أدوار/admin/12 صف/12 شعبة/36 مادة/30 طالب/خطط رسوم) + IRepository<T>/Repository<T> + ConnectionMonitor متصل بـ CanConnectAsync + EnableRetryOnFailure + BCrypt للتجزئة. Build 0/0. |
-| Phase 4 — Auth | Pending | - | - | - |
+| Phase 4 — Auth | ✅ Completed | 2026-05-15 | 2026-05-15 | LoginView بتخطيط جزأين (Navy brand + form بيضاء) + IAuthService (BCrypt verify) + ICurrentUserService بـ SignedIn/Out events + LoginViewModel + App.OnStartup يدير دورة Login↔Shell + ShutdownMode=OnExplicitShutdown + TopBar يعرض الاسم/الحرف/الدور + LogoutCommand. Converters.xaml + InverseBoolToVisibility. Build 0/0. |
 | Phase 5 — Dashboard | Pending | - | - | - |
 | Phase 6 — Students | Pending | - | - | - |
 | Phase 7 — Classes | Pending | - | - | - |
@@ -608,6 +614,10 @@
 | 2026-05-15 | إضافة `IDesignTimeDbContextFactory<NasaqDbContext>` (`NasaqDbContextFactory.cs`) | يضمن نجاح `dotnet ef migrations add/database update` دون تشغيل WPF host (يقرأ appsettings.json مباشرة) |
 | 2026-05-15 | إضافة `ActivateAsync` على `PageViewModel` كنقطة دخول لتحميل بيانات الصفحة | MainShell يستدعيها بعد كل تنقّل؛ مكان موحّد للأشياء async بدلاً من فايبر-end-fire-and-forget داخل الـ Constructor، يحافظ على Singleton ViewModel بدون state تالف |
 | 2026-05-15 | حفظ DateTime UTC في DB واستخدام `datetime2` (افتراضي EF Core 8) | يلبي AI_INSTRUCTIONS؛ Phase 13 ستُضيف Hijri formatter عند العرض |
+| 2026-05-15 | `ShutdownMode="OnExplicitShutdown"` + إدارة دورة حياة `LoginView`/`MainShellView` من `App` مباشرة | تبديل النوافذ أثناء Login/Logout يحتاج للحياة بعد إغلاق نافذة (لو OnLastWindowClose لانتهى التطبيق فور إغلاق Login عند نجاحه)؛ App يتعامل مع `CurrentUserService.SignedIn/Out` ليُنشئ النافذة المناسبة |
+| 2026-05-15 | `PasswordBox` مربوط بـ ViewModel عبر code-behind وليس Binding | WPF لا يكشف `Password` كـ DependencyProperty لأسباب أمنية؛ التعامل اليدوي عبر `PasswordChanged` معيار رسمي ولا يحفظ النص في ذاكرة managed أطول من اللازم |
+| 2026-05-15 | `MainShellViewModel` يستمع لـ `CurrentUserService.SignedIn` ويُعيد التنقل إلى Dashboard | الـ VM Singleton لذا يحتاج لإعادة تعيين حالته بين الجلسات بدلاً من إنشاء instance جديد (الذي سيتطلب Scope) |
+| 2026-05-15 | فصل `Converters.xaml` كـ ResourceDictionary مستقل وإضافته في `App.xaml` قبل Common | Converters تُستخدم في عدة Themes/Views؛ فصلها يمنع التكرار ويبقي الترتيب صحيحاً (Common يعتمد عليها لاحقاً) |
 
 ---
 
@@ -640,4 +650,4 @@
 6. حدّث القسم 8 و9 بعد كل عمل.
 7. عند الانتهاء من جلسة، اذكر: ما تم، حالة Build، الملفات المهمة، المرحلة التالية.
 
-**الحالة الحالية:** Phase 0 و Phase 1 و Phase 2 و Phase 3 اكتملت. المرحلة التالية هي **Phase 4 — Authentication and Users** (LoginView مطابقاً للتصميم رقم 2، AuthService مع BCrypt verification، CurrentUserService، استبدال نافذة Login بـ MainShellView بعد النجاح، عرض المستخدم في TopBar، زر تسجيل خروج). لا تبدأ Phase 4 دون طلب صريح من المستخدم.
+**الحالة الحالية:** Phase 0/1/2/3/4 اكتملت. المرحلة التالية هي **Phase 5 — Dashboard** (شاشة DashboardView مطابقة للتصميم 1: 5 بطاقات إحصائية + رسم خطي للحضور + دونات نسبة + بطاقات تنبيهات + جدول آخر الأنشطة، DashboardService يجمع الأرقام من Repositories، اختيار LiveCharts2 كمكتبة رسوم بيانية). لا تبدأ Phase 5 دون طلب صريح من المستخدم.
