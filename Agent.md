@@ -325,32 +325,34 @@
 ---
 
 ### Phase 3 — Database and Core Entities
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-15)
 
 **Tasks:**
-- إنشاء كل Model في `/Models`.
-- إنشاء `NasaqDbContext` مع DbSets والعلاقات (Fluent API).
-- ضبط connection string في `appsettings.json` + قراءته عبر `IConfiguration` عند تسجيل `DbContext` في DI.
-- تفعيل `EnableRetryOnFailure` في إعداد `UseSqlServer` لمعالجة أعطال شبكية عابرة.
-- إنشاء أول Migration وتشغيلها على LocalDB.
-- **بناء `IDatabaseInitializer` / `DatabaseInitializer` يطبّق Migrations ديناميكياً عند بدء التطبيق:**
-  - `CanConnectAsync()` للتحقق من إمكانية الاتصال (مع تقرير الفشل بشكل واضح).
-  - `GetPendingMigrationsAsync()` لجلب أي Migrations معلّقة (مستقبلية بما في ذلك).
-  - `MigrateAsync()` لتطبيقها تلقائياً — أي Migration جديدة يضيفها أي وكيل لاحقاً تُلتقط دون كود إضافي.
-  - استدعاء `IDbSeeder.SeedIfEmptyAsync()` بعد الـ Migrations عند فراغ القاعدة.
-  - معالجة أخطاء (SqlException، Authentication، Network) وإرجاع نتيجة منظَّمة `DatabaseInitResult` (Success / Failed + Reason).
-- **ممنوع استخدام `EnsureCreated()`** — يجب الاعتماد على Migrations فقط.
-- كتابة `DbSeeder` لإدخال بيانات تجريبية (مدرسة النور، السنة 2025-2026، صفوف، شعب، مستخدم admin/admin123، ~30 طالب، مواد، رسوم).
-- إنشاء واجهات Repositories لكل Entity رئيسي + التنفيذ، كلها async (Task-based).
-- تسجيل الكل في DI.
-- في `App.OnStartup`: استدعاء `DatabaseInitializer` قبل إظهار MainWindow (في Phase 3 يكفي عرض MessageBox عند الفشل؛ Phase 13 ستلفّ هذا بـ Splash + Wizard).
+- [x] إنشاء كل Model في `/Models` (17 كياناً + Enums): Role, User, SchoolSettings, AcademicYear, Grade, Section, Guardian, Student, Subject, Exam, Mark, AttendanceRecord, FeePlan, StudentFee, Installment, Payment, BackupLog.
+- [x] إنشاء [NasaqDbContext](Nasag/Data/NasaqDbContext.cs) مع DbSets والعلاقات الكاملة (Fluent API: أنواع، أطوال، Precision، Indexes فريدة، Delete behaviors).
+- [x] ضبط connection string في `appsettings.json` (موجود من Phase 1) + قراءته عبر `IConfiguration` عند تسجيل `AddDbContextFactory<NasaqDbContext>` في DI.
+- [x] تفعيل `EnableRetryOnFailure(5, TimeSpan.FromSeconds(10))` في إعداد `UseSqlServer`.
+- [x] إنشاء أول Migration `20260515081343_InitialCreate` تحت [Nasag/Data/Migrations/](Nasag/Data/Migrations/).
+- [x] **`IDatabaseInitializer` / `DatabaseInitializer` يطبّق Migrations ديناميكياً عند بدء التطبيق:**
+  - `GetPendingMigrationsAsync()` ثم `MigrateAsync()` تلقائياً — أي Migration جديدة تُلتقط بلا كود إضافي.
+  - `CanConnectAsync()` يُستدعى عندما لا توجد Migrations لضمان الوصول.
+  - استدعاء `IDbSeeder.SeedIfEmptyAsync()` بعد Migrations.
+  - معالجة أخطاء (SqlException، عام) وإرجاع `DatabaseInitResult` مع `DatabaseInitStatus` (Success/CannotConnect/MigrationFailed/SeedFailed/Unknown) ورسالة عربية.
+- [x] لا يوجد أي استخدام لـ `EnsureCreated()` في المشروع.
+- [x] `IDesignTimeDbContextFactory<NasaqDbContext>` ([NasaqDbContextFactory.cs](Nasag/Data/NasaqDbContextFactory.cs)) لدعم `dotnet ef` بشكل مستقل عن host بدء التشغيل.
+- [x] [DbSeeder](Nasag/Data/DbSeeder.cs) إدراج: 4 أدوار (مدير نظام/مدير مدرسة/معلم/محاسب)، admin/admin123 (BCrypt)، السنة 2025 - 2026، مدرسة النور الأهلية، 12 صف، 12 شعبة (6 صفوف × 2)، 36 مادة (6 صفوف × 6)، 3 امتحانات، 6 خطط رسوم، 30 طالب + 30 ولي أمر + StudentFees + 4 أقساط لكل طالب. Seeder Idempotent عبر فحص `Users.AnyAsync()`.
+- [x] [IRepository<T> + Repository<T>](Nasag/Repositories/) عام async (GetAll, Where, GetById, FirstOrDefault, Count, Add, Update, Delete + OpenScope() لاستعلامات IQueryable). مسجّل كـ open generic singleton في DI.
+- [x] [App.OnStartup](Nasag/App.xaml.cs) أصبح async: يُهيّئ Host → يستدعي `IDatabaseInitializer.InitializeAsync()` عبر `Task.Run` لتجنب deadlock — عند الفشل يظهر MessageBox عربي ويُغلق التطبيق (Phase 13 ستستبدل MessageBox بـ Splash + Setup Wizard).
+- [x] [IConnectionMonitor](Nasag/Services/IConnectionMonitor.cs) مربوط الآن فعلياً بـ `IDbContextFactory<NasaqDbContext>.CreateDbContextAsync().Database.CanConnectAsync()` بدلاً من stub Phase 2، مع dispatch إلى UI thread عند تعديل الحالة.
+- [x] [StudentsViewModel](Nasag/ViewModels/Pages/PageViewModel.cs) يستهلك `IRepository<Student>` ويُحمّل عدد الطلاب async في `ActivateAsync` المُستدعى من `MainShellViewModel.RefreshFromNavigation`.
 
 **Acceptance Criteria:**
-- قاعدة البيانات تُنشأ وتُحدَّث تلقائياً عند أول تشغيل عبر Migrations.
-- إضافة Migration جديد لاحقاً يُطبَّق ذاتياً دون أي تعديل كود إضافي.
-- Seed Data تُحقن مرة واحدة فقط (يتحقق Seeder بأن القاعدة فارغة قبل الإدراج).
-- يمكن قراءة Students من Repository داخل ViewModel بشكل async.
-- فشل الاتصال يُعرض كرسالة عربية واضحة، لا crash.
+- [x] قاعدة البيانات تُنشأ وتُحدَّث تلقائياً عند أول تشغيل عبر Migrations (`DatabaseInitializer.MigrateAsync`).
+- [x] إضافة Migration جديد لاحقاً يُطبَّق ذاتياً (المنطق يعتمد على `GetPendingMigrationsAsync`).
+- [x] Seed Data تُحقن مرة واحدة فقط — Seeder يتحقق من `Users.AnyAsync()` قبل الإدراج.
+- [x] قراءة Students من Repository داخل `StudentsViewModel.ActivateAsync` async.
+- [x] فشل الاتصال يُعرض كرسالة عربية واضحة عبر MessageBox + Shutdown، لا crash.
+- [x] Build: 0 Warning / 0 Error.
 
 ---
 
@@ -558,7 +560,7 @@
 | Phase 0 — Planning | ✅ Completed | 2026-05-15 | 2026-05-15 | تم فحص المشروع و10 صور UI، استخراج الهوية البصرية، إنشاء Agent.md وAI_INSTRUCTIONS.md |
 | Phase 1 — Foundation | ✅ Completed | 2026-05-15 | 2026-05-15 | بنية مجلدات + 8 حزم NuGet + خط Tajawal (3 أوزان) + Colors/Typography/Common dictionaries + DI عبر Generic Host + smoke-test window. Build: 0/0. |
 | Phase 2 — Shell & Design System | ✅ Completed | 2026-05-15 | 2026-05-15 | MainShell كاملاً (Sidebar+TopBar+ContentHost) + 7 ResourceDictionaries (Buttons/Inputs/DataGrid/Cards/Pills/Icons/DataTemplates) + 5 UserControls (StatCard/SectionHeader/SidebarMenuItem/LoadingOverlay/ConnectionBanner) + IBusyService/IConnectionMonitor/INavigationService + 12 Page VMs + Placeholder view. Build 0/0. |
-| Phase 3 — Database | Pending | - | - | - |
+| Phase 3 — Database | ✅ Completed | 2026-05-15 | 2026-05-15 | 17 Entities + Enums + NasaqDbContext (Fluent API كامل) + InitialCreate migration + IDatabaseInitializer (Migrate ديناميكياً) + DbSeeder (4 أدوار/admin/12 صف/12 شعبة/36 مادة/30 طالب/خطط رسوم) + IRepository<T>/Repository<T> + ConnectionMonitor متصل بـ CanConnectAsync + EnableRetryOnFailure + BCrypt للتجزئة. Build 0/0. |
 | Phase 4 — Auth | Pending | - | - | - |
 | Phase 5 — Dashboard | Pending | - | - | - |
 | Phase 6 — Students | Pending | - | - | - |
@@ -599,6 +601,13 @@
 | 2026-05-15 | جميع PageViewModels مسجَّلة Singleton لا Transient | للحفاظ على state التنقل والبحث بين الزيارات داخل الجلسة الواحدة |
 | 2026-05-15 | استخدام `ResourceKeyConverter` لتمرير أيقونات Sidebar كـ string keys في NavigationDescriptor | يفصل التنقل عن WPF Resources ويسمح بتعريف القوائم في C# pure |
 | 2026-05-15 | حذف MainWindow و MainViewModel القديمين بعد الانتقال لـ MainShellView | ملفات Phase 1 الانتقالية لم تعد مستخدمة؛ AI_INSTRUCTIONS يمنع الإبقاء على Dead code |
+| 2026-05-15 | استخدام `AddDbContextFactory<NasaqDbContext>` بدل DbContext scoped | WPF تطبيق Desktop بدون scope-per-request؛ Factory يتيح short-lived contexts من أي خدمة Singleton (Repositories, ConnectionMonitor, DbSeeder, DatabaseInitializer) بأمان thread-safety |
+| 2026-05-15 | اختيار `BCrypt.Net-Next` لتجزئة كلمات المرور | معيار صناعي، صيانة نشطة، دعم work-factor، يلبي AI_INSTRUCTIONS (Hashing دائماً) |
+| 2026-05-15 | Generic `IRepository<T>` فقط في Phase 3 بدلاً من repos خاص لكل Entity | YAGNI — Acceptance criteria تتطلب فقط قراءة Students؛ Repositories متخصصة (StudentsRepository إلخ) ستُضاف عند الحاجة لاستعلامات domain-specific في Phase 6+ |
+| 2026-05-15 | App.OnStartup async + استدعاء InitializeAsync عبر `Task.Run().ConfigureAwait(true)` | منع deadlock بـ WPF SynchronizationContext أثناء انتظار EF Core async migrations؛ MessageBox عربي عند الفشل ثم Shutdown — سيُستبدل بـ Splash في Phase 13 |
+| 2026-05-15 | إضافة `IDesignTimeDbContextFactory<NasaqDbContext>` (`NasaqDbContextFactory.cs`) | يضمن نجاح `dotnet ef migrations add/database update` دون تشغيل WPF host (يقرأ appsettings.json مباشرة) |
+| 2026-05-15 | إضافة `ActivateAsync` على `PageViewModel` كنقطة دخول لتحميل بيانات الصفحة | MainShell يستدعيها بعد كل تنقّل؛ مكان موحّد للأشياء async بدلاً من فايبر-end-fire-and-forget داخل الـ Constructor، يحافظ على Singleton ViewModel بدون state تالف |
+| 2026-05-15 | حفظ DateTime UTC في DB واستخدام `datetime2` (افتراضي EF Core 8) | يلبي AI_INSTRUCTIONS؛ Phase 13 ستُضيف Hijri formatter عند العرض |
 
 ---
 
@@ -631,4 +640,4 @@
 6. حدّث القسم 8 و9 بعد كل عمل.
 7. عند الانتهاء من جلسة، اذكر: ما تم، حالة Build، الملفات المهمة، المرحلة التالية.
 
-**الحالة الحالية:** Phase 0 و Phase 1 و Phase 2 اكتملت. المرحلة التالية هي **Phase 3 — Database and Core Entities** (Models + NasaqDbContext + Migrations + DatabaseInitializer ديناميكي + Seeder + Repositories async). لا تبدأ Phase 3 دون طلب صريح من المستخدم.
+**الحالة الحالية:** Phase 0 و Phase 1 و Phase 2 و Phase 3 اكتملت. المرحلة التالية هي **Phase 4 — Authentication and Users** (LoginView مطابقاً للتصميم رقم 2، AuthService مع BCrypt verification، CurrentUserService، استبدال نافذة Login بـ MainShellView بعد النجاح، عرض المستخدم في TopBar، زر تسجيل خروج). لا تبدأ Phase 4 دون طلب صريح من المستخدم.

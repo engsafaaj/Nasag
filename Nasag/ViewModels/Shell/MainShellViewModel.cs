@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Nasag.Services;
+using Nasag.ViewModels.Pages;
 
 namespace Nasag.ViewModels.Shell;
 
@@ -78,7 +79,10 @@ public partial class MainShellViewModel : ObservableObject
     private async Task RetryConnectionAsync()
     {
         var ok = await _connection.CheckAsync();
-        if (ok) _connection.ReportSuccess();
+        if (ok)
+            _connection.ReportSuccess();
+        else
+            _connection.ReportFailure(_connection.LastErrorMessage ?? "تعذّر الاتصال بقاعدة البيانات.");
     }
 
     partial void OnIsSidebarCollapsedChanged(bool value)
@@ -93,6 +97,9 @@ public partial class MainShellViewModel : ObservableObject
         foreach (var item in NavigationItems)
             item.IsActive = item.Section == _navigation.Current;
         ActiveItem = NavigationItems.FirstOrDefault(x => x.IsActive);
+
+        if (CurrentPage is PageViewModel page)
+            _ = page.ActivateAsync();
     }
 
     private void SyncConnectionState()

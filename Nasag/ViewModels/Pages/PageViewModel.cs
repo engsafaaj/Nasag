@@ -1,4 +1,11 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.EntityFrameworkCore;
+using Nasag.Data;
+using Nasag.Models;
+using Nasag.Repositories;
 
 namespace Nasag.ViewModels.Pages;
 
@@ -6,6 +13,17 @@ public abstract partial class PageViewModel : ObservableObject
 {
     public abstract string TitleAr { get; }
     public virtual string SubtitleAr => string.Empty;
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string? _statusMessage;
+
+    /// <summary>
+    /// Called by the shell whenever the page becomes active. Override to load data.
+    /// </summary>
+    public virtual Task ActivateAsync(CancellationToken ct = default) => Task.CompletedTask;
 }
 
 public sealed class DashboardViewModel : PageViewModel
@@ -14,10 +32,42 @@ public sealed class DashboardViewModel : PageViewModel
     public override string SubtitleAr => "نظرة عامة على بيانات المدرسة وآخر الأنشطة";
 }
 
-public sealed class StudentsViewModel : PageViewModel
+public sealed partial class StudentsViewModel : PageViewModel
 {
+    private readonly IRepository<Student> _studentsRepo;
+
+    [ObservableProperty]
+    private int _studentsCount;
+
+    public StudentsViewModel(IRepository<Student> studentsRepo)
+    {
+        _studentsRepo = studentsRepo;
+    }
+
     public override string TitleAr => "الطلاب";
-    public override string SubtitleAr => "إدارة بيانات الطلاب والبحث والفلترة";
+    public override string SubtitleAr => StudentsCount > 0
+        ? $"إدارة بيانات الطلاب — عدد الطلاب: {StudentsCount}"
+        : "إدارة بيانات الطلاب والبحث والفلترة";
+
+    partial void OnStudentsCountChanged(int value) => OnPropertyChanged(nameof(SubtitleAr));
+
+    public override async Task ActivateAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            IsLoading = true;
+            StatusMessage = null;
+            StudentsCount = await _studentsRepo.CountAsync(ct).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "تعذّر تحميل بيانات الطلاب: " + ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
 }
 
 public sealed class ClassesViewModel : PageViewModel

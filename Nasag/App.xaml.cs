@@ -1,8 +1,12 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Nasag.Data;
+using Nasag.Repositories;
 using Nasag.Services;
 using Nasag.ViewModels.Pages;
 using Nasag.ViewModels.Shell;
@@ -18,8 +22,10 @@ public partial class App : Application
         => Host?.Services.GetRequiredService<T>()
            ?? throw new InvalidOperationException("Host is not initialized.");
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
+        base.OnStartup(e);
+
         Host = Microsoft.Extensions.Hosting.Host
             .CreateDefaultBuilder()
             .ConfigureAppConfiguration((_, config) =>
@@ -27,18 +33,32 @@ public partial class App : Application
                 config.SetBasePath(AppContext.BaseDirectory);
                 config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             })
-            .ConfigureServices((_, services) => ConfigureServices(services))
+            .ConfigureServices((ctx, services) => ConfigureServices(services, ctx.Configuration))
             .Build();
 
-        Host.Start();
+        await Host.StartAsync();
+
+        // Initialize database (apply pending migrations + seed if empty).
+        var initializer = GetService<IDatabaseInitializer>();
+        var result = await Task.Run(() => initializer.InitializeAsync()).ConfigureAwait(true);
+
+        if (!result.IsSuccess)
+        {
+            var details = string.IsNullOrWhiteSpace(result.Details) ? string.Empty : $"\n\nالتفاصيل: {result.Details}";
+            MessageBox.Show(
+                $"{result.ErrorMessage}{details}",
+                "نَسَق — تعذّر بدء التشغيل",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(-1);
+            return;
+        }
 
         var shell = new MainShellView
         {
             DataContext = GetService<MainShellViewModel>()
         };
         shell.Show();
-
-        base.OnStartup(e);
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -52,8 +72,29 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    private static void ConfigureServices(IServiceCollection services)
+    private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        // EF Core — pooled factory so any service can grab a short-lived context.
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection in appsettings.json");
+
+        services.AddDbContextFactory<NasaqDbContext>(options =>
+        {
+            options.UseSqlServer(connectionString, sql =>
+            {
+                sql.MigrationsAssembly(typeof(NasaqDbContext).Assembly.GetName().Name);
+                sql.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null);
+            });
+        });
+
+        // Data services
+        services.AddSingleton<IDbSeeder, DbSeeder>();
+        services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
+        services.AddSingleton(typeof(IRepository<>), typeof(Repository<>));
+
         // Cross-cutting services
         services.AddSingleton<IAppInfoService, AppInfoService>();
         services.AddSingleton<IBusyService, BusyService>();
