@@ -69,11 +69,11 @@ public partial class App : Application
         if (!result.IsSuccess)
         {
             var details = string.IsNullOrWhiteSpace(result.Details) ? string.Empty : $"\n\nالتفاصيل: {result.Details}";
-            MessageBox.Show(
-                $"{result.ErrorMessage}{details}",
+            Nasag.Views.Common.NasaqDialog.Show(
+                null,
                 "نَسَق — تعذّر بدء التشغيل",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                $"{result.ErrorMessage}{details}",
+                Nasag.Views.Common.NasaqDialogKind.Danger);
             Shutdown(-1);
             return;
         }
@@ -187,6 +187,8 @@ public partial class App : Application
         services.AddSingleton<IDashboardService, DashboardService>();
         services.AddSingleton<IErrorReporter, ErrorReporter>();
         services.AddSingleton<IToastService, ToastService>();
+        services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
+        services.AddSingleton<IExcelService, ExcelService>();
 
         // Auth
         services.AddTransient<LoginViewModel>();
@@ -197,6 +199,7 @@ public partial class App : Application
         // Page VMs (singletons so they keep their state during the session)
         services.AddSingleton<DashboardViewModel>();
         services.AddSingleton<StudentEditorViewModel>();
+        services.AddTransient<StudentImportWizardViewModel>();
         services.AddSingleton<StudentsViewModel>();
         services.AddSingleton<ClassesViewModel>();
         services.AddSingleton<AttendanceViewModel>();

@@ -127,6 +127,111 @@
     </Style>
 
     <!--
+        BubbleButton — pill-shaped accent button used for the primary "Add" action
+        in toolbars. Distinct from PrimaryButton: it has a fully rounded (999) corner,
+        a teal gradient face, a soft glow shadow, and a slightly heavier presence so
+        it reads as the *one* call-to-action on a list page.
+    -->
+    <ControlTemplate x:Key="BubbleButtonTemplate" TargetType="ButtonBase">
+        <Border x:Name="Root"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="999"
+                SnapsToDevicePixels="True">
+            <Border.Effect>
+                <DropShadowEffect Color="#1FB5A8" BlurRadius="16" ShadowDepth="0" Opacity="0.45" />
+            </Border.Effect>
+            <ContentPresenter HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}"
+                              TextElement.Foreground="{TemplateBinding Foreground}"
+                              TextElement.FontFamily="{TemplateBinding FontFamily}"
+                              TextElement.FontSize="{TemplateBinding FontSize}"
+                              TextElement.FontWeight="{TemplateBinding FontWeight}"
+                              RecognizesAccessKey="True" />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource TealHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource TealPressedBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="BubbleButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource TealPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TealPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="{StaticResource TajawalFont}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBase}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template" Value="{StaticResource BubbleButtonTemplate}" />
+    </Style>
+
+    <!--
+        FabButton — a fixed-size circular Floating Action Button used as the
+        single primary CTA for list pages. Anchored bottom-right of the page
+        as an overlay, NEVER in the toolbar. Pure teal circle, white icon,
+        soft teal glow shadow, scales subtly on hover.
+    -->
+    <ControlTemplate x:Key="FabButtonTemplate" TargetType="ButtonBase">
+        <Grid>
+            <Border x:Name="Root"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="999"
+                    SnapsToDevicePixels="True">
+                <Border.Effect>
+                    <DropShadowEffect Color="#1FB5A8"
+                                      BlurRadius="24"
+                                      ShadowDepth="3"
+                                      Opacity="0.55" />
+                </Border.Effect>
+                <ContentPresenter HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+            </Border>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource TealHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource TealPressedBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="FabButton" TargetType="Button">
+        <Setter Property="Width" Value="60" />
+        <Setter Property="Height" Value="60" />
+        <Setter Property="Background" Value="{StaticResource TealPrimaryBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderBrush" Value="{StaticResource TealPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource TajawalFont}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Template" Value="{StaticResource FabButtonTemplate}" />
+    </Style>
+
+    <!--
         BusyButton style — bind IsEnabled to !IsBusy of your VM, and use the spinner via the AdornedElement
         pattern below. The button content is replaced by a small spinner when IsBusy=True on the parent VM.
         Convention: drop a <Path Tag="BusySpinner" Visibility="{Binding IsBusy, Converter=...}"/> if you

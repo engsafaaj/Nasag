@@ -31,34 +31,23 @@
                 </Grid.RowDefinitions>
 
                 <!--
-                    Header row.
-                    The view's FlowDirection is RTL, so Column 0 renders on the RIGHT
-                    (title block) and Column 1 renders on the LEFT (refresh button).
+                    Header row — uses FlowDirection=LeftToRight to take RTL mirroring
+                    out of the picture. Column 2 is the *actual* right edge, so the
+                    title StackPanel (with its own inner FlowDirection=RightToLeft for
+                    Arabic text shaping) is pinned to the visual right unconditionally.
                 -->
-                <Grid Grid.Row="0" Margin="0,0,0,18">
+                <Grid Grid.Row="0" Margin="0,0,0,18" FlowDirection="LeftToRight">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
-                        <TextBlock Text="{Binding TitleAr}"
-                                   Style="{StaticResource SectionTitle}"
-                                   TextAlignment="Right"
-                                   HorizontalAlignment="Right" />
-                        <TextBlock Text="{Binding SubtitleAr}"
-                                   Style="{StaticResource SectionSubtitle}"
-                                   TextAlignment="Right"
-                                   HorizontalAlignment="Right"
-                                   Margin="0,4,0,0" />
-                    </StackPanel>
-
-                    <Button Grid.Column="1"
+                    <Button Grid.Column="0"
                             Style="{StaticResource SecondaryButton}"
                             Command="{Binding RefreshCommand}"
-                            VerticalAlignment="Center">
+                            VerticalAlignment="Center"
+                            FlowDirection="RightToLeft">
                         <StackPanel Orientation="Horizontal">
                             <Path Data="{StaticResource IconRefresh}"
                                   Stroke="{StaticResource TextPrimaryBrush}"
@@ -72,6 +61,21 @@
                                        VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+
+                    <StackPanel Grid.Column="2"
+                                FlowDirection="RightToLeft"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="{Binding TitleAr}"
+                                   Style="{StaticResource SectionTitle}"
+                                   TextAlignment="Right"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding SubtitleAr}"
+                                   Style="{StaticResource SectionSubtitle}"
+                                   TextAlignment="Right"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
                 </Grid>
 
                 <!-- ===================== Stat cards row ===================== -->

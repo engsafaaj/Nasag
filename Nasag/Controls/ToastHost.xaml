@@ -7,7 +7,16 @@
              mc:Ignorable="d"
              IsHitTestVisible="True"
              Background="Transparent"
-             FlowDirection="RightToLeft">
+             FlowDirection="LeftToRight">
+
+    <!--
+        Toasts are anchored to the *visual LEFT* of the host.
+        We force this control to LeftToRight so HorizontalAlignment="Left"
+        always means the visually-left edge regardless of the parent flow,
+        and the small icon stays on the *content* side (right) of each card,
+        while the close X sits at the visually-left edge of each card.
+        The text content inside each toast is still naturally Arabic (RTL).
+    -->
 
     <UserControl.Resources>
         <Style x:Key="ToastBorderBase" TargetType="Border">
@@ -16,6 +25,7 @@
             <Setter Property="MinWidth" Value="320" />
             <Setter Property="MaxWidth" Value="420" />
             <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Background" Value="{StaticResource CardSurfaceBrush}" />
             <Setter Property="Effect">
                 <Setter.Value>
                     <DropShadowEffect Color="#1B3A57"
@@ -27,40 +37,33 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,20,0">
+    <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,20,0,0">
         <ItemsControl x:Name="ToastList">
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type svc:ToastItem}">
-                    <Border Style="{StaticResource ToastBorderBase}">
-                        <Border.Background>
-                            <SolidColorBrush x:Name="BgBrush" Color="#FFFFFF" />
-                        </Border.Background>
-                        <Border.Resources>
+                    <Border FlowDirection="RightToLeft">
+                        <Border.Style>
                             <Style TargetType="Border" BasedOn="{StaticResource ToastBorderBase}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Kind}" Value="Success">
-                                        <Setter Property="Background" Value="{StaticResource CardSurfaceBrush}" />
                                         <Setter Property="BorderBrush" Value="{StaticResource SuccessBrush}" />
-                                        <Setter Property="BorderThickness" Value="0,0,4,0" />
+                                        <Setter Property="BorderThickness" Value="4,0,0,0" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Kind}" Value="Error">
-                                        <Setter Property="Background" Value="{StaticResource CardSurfaceBrush}" />
                                         <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
-                                        <Setter Property="BorderThickness" Value="0,0,4,0" />
+                                        <Setter Property="BorderThickness" Value="4,0,0,0" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Kind}" Value="Warning">
-                                        <Setter Property="Background" Value="{StaticResource CardSurfaceBrush}" />
                                         <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
-                                        <Setter Property="BorderThickness" Value="0,0,4,0" />
+                                        <Setter Property="BorderThickness" Value="4,0,0,0" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Kind}" Value="Info">
-                                        <Setter Property="Background" Value="{StaticResource CardSurfaceBrush}" />
                                         <Setter Property="BorderBrush" Value="{StaticResource InfoBrush}" />
-                                        <Setter Property="BorderThickness" Value="0,0,4,0" />
+                                        <Setter Property="BorderThickness" Value="4,0,0,0" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </Border.Resources>
+                        </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />

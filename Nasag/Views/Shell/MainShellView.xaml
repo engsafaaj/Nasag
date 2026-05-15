@@ -183,8 +183,14 @@
             <!-- Page host -->
             <Grid>
                 <ContentControl Content="{Binding CurrentPage}" />
-                <!-- Reserved: shell-wide loading overlay (P3+ wires it to IBusyService) -->
-                <controls:ToastHost VerticalAlignment="Top" HorizontalAlignment="Right"
+                <!--
+                    ToastHost spans the page area; the *inner* grid inside the host
+                    (FlowDirection=LeftToRight) anchors itself to its visual-left edge
+                    so toasts always appear in the visually-LEFT corner of the screen,
+                    independent of the parent's FlowDirection.
+                -->
+                <controls:ToastHost HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
                                     IsHitTestVisible="True" />
             </Grid>
         </DockPanel>

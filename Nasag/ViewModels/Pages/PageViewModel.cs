@@ -69,10 +69,33 @@ public sealed class UsersViewModel : PageViewModel
     public override string SubtitleAr => "إدارة المستخدمين والأدوار والصلاحيات";
 }
 
-public sealed class SettingsViewModel : PageViewModel
+public sealed partial class SettingsViewModel : PageViewModel
 {
+    private readonly Nasag.Services.IUserPreferencesService _prefs;
+    private readonly Nasag.Services.IToastService _toasts;
+
+    public SettingsViewModel(
+        Nasag.Services.IUserPreferencesService prefs,
+        Nasag.Services.IToastService toasts)
+    {
+        _prefs = prefs;
+        _toasts = toasts;
+        _studentsSortAlphabetically = _prefs.Current.StudentsSortAlphabetically;
+    }
+
     public override string TitleAr => "الإعدادات";
     public override string SubtitleAr => "بيانات المدرسة والسنة الدراسية والإعدادات العامة";
+
+    [ObservableProperty]
+    private bool _studentsSortAlphabetically;
+
+    partial void OnStudentsSortAlphabeticallyChanged(bool value)
+    {
+        _prefs.Current.StudentsSortAlphabetically = value;
+        _prefs.Save();
+        _toasts.Success("تم حفظ الإعداد",
+            value ? "سيتم ترتيب الطلاب أبجدياً." : "سيظهر الطالب الأحدث في الأعلى.");
+    }
 }
 
 public sealed class BackupViewModel : PageViewModel

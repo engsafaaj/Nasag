@@ -39,6 +39,13 @@
     <Geometry x:Key="IconRefresh">M4 12 a8 8 0 0 1 14-5 M20 4 V9 H15 M20 12 a8 8 0 0 1 -14 5 M4 20 V15 H9</Geometry>
     <Geometry x:Key="IconWifiOff">M2 6 L22 22 M5 12 a10 10 0 0 1 4-2 M19 12 a10 10 0 0 0 -7-3 M9 16 a4 4 0 0 1 6 0 M12 20 h.01</Geometry>
 
+    <!-- Toolbar/grid action icons added in Phase 6 redesign -->
+    <Geometry x:Key="IconFilterClear">M5 5 H19 L14 12 V19 L10 17 V12 Z</Geometry>
+    <Geometry x:Key="IconExport">M12 4 V14 M8 8 L12 4 L16 8 M4 18 H20</Geometry>
+    <Geometry x:Key="IconImport">M12 16 V6 M8 12 L12 16 L16 12 M4 20 H20</Geometry>
+    <Geometry x:Key="IconCheck">M5 12 L10 17 L20 7</Geometry>
+    <Geometry x:Key="IconCamera">M5 7 H8 L10 5 H14 L16 7 H19 V19 H5 Z M12 11 a3 3 0 1 0 0 6 a3 3 0 0 0 0 -6 Z</Geometry>
+
     <!-- Chevrons (used by collapse toggle). In RTL these get visually mirrored automatically. -->
     <Geometry x:Key="IconChevronRight">M9 6 L15 12 L9 18</Geometry>
     <Geometry x:Key="IconChevronLeft">M15 6 L9 12 L15 18</Geometry>

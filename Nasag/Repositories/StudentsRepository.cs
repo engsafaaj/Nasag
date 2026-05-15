@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nasag.Data;
 using Nasag.Models;
+using Nasag.Services;
 
 namespace Nasag.Repositories;
 
@@ -52,8 +53,11 @@ public sealed class StudentsRepository : IStudentsRepository
         var page = Math.Max(1, query.Page);
         var size = Math.Clamp(query.PageSize, 1, 200);
 
+        q = query.Sort == StudentSortMode.NewestFirst
+            ? q.OrderByDescending(s => s.Id)
+            : q.OrderBy(s => s.FullName);
+
         var rows = await q
-            .OrderBy(s => s.FullName)
             .Skip((page - 1) * size)
             .Take(size)
             .Select(s => new StudentRow(
@@ -149,49 +153,13 @@ public sealed class StudentsRepository : IStudentsRepository
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
 
-        // EnableRetryOnFailure requires user-initiated transactions to run inside
-        // the execution strategy so the whole block is retried on transient errors.
         var strategy = ctx.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
             await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
-
-            var guardian = new Guardian
-            {
-                FullName = model.GuardianFullName.Trim(),
-                Relation = model.GuardianRelation,
-                Phone = NullIfEmpty(model.GuardianPhone),
-                AltPhone = NullIfEmpty(model.GuardianAltPhone),
-                Email = NullIfEmpty(model.GuardianEmail),
-                NationalId = NullIfEmpty(model.GuardianNationalId),
-                Occupation = NullIfEmpty(model.GuardianOccupation),
-                Address = NullIfEmpty(model.GuardianAddress),
-            };
-            ctx.Guardians.Add(guardian);
-            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
-
-            var student = new Student
-            {
-                StudentNumber = model.StudentNumber.Trim(),
-                FullName = model.FullName.Trim(),
-                Gender = model.Gender,
-                BirthDate = model.BirthDate.Date,
-                NationalId = NullIfEmpty(model.NationalId),
-                PhotoPath = NullIfEmpty(model.PhotoPath),
-                PhotoBytes = model.PhotoBytes,
-                Phone = NullIfEmpty(model.Phone),
-                Address = NullIfEmpty(model.Address),
-                Notes = NullIfEmpty(model.Notes),
-                EnrollmentDate = model.EnrollmentDate.Date,
-                Status = StudentStatus.Active,
-                SectionId = model.SectionId,
-                GuardianId = guardian.Id,
-            };
-            ctx.Students.Add(student);
-            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
-
+            var id = await InsertCoreAsync(ctx, model, ct).ConfigureAwait(false);
             await tx.CommitAsync(ct).ConfigureAwait(false);
-            return student.Id;
+            return id;
         }).ConfigureAwait(false);
     }
 
@@ -251,6 +219,33 @@ public sealed class StudentsRepository : IStudentsRepository
         await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task DeleteAsync(int studentId, CancellationToken ct = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        var strategy = ctx.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+            var student = await ctx.Students
+                .Include(s => s.Guardian).ThenInclude(g => g.Students)
+                .FirstOrDefaultAsync(s => s.Id == studentId, ct)
+                .ConfigureAwait(false)
+                ?? throw new InvalidOperationException("الطالب غير موجود.");
+
+            // The Student row + cascaded Marks/Attendance/StudentFees go via FK cascade rules.
+            ctx.Students.Remove(student);
+
+            // If this was the guardian's only student, delete the now-orphan guardian too.
+            if (student.Guardian.Students.Count <= 1)
+                ctx.Guardians.Remove(student.Guardian);
+
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+        }).ConfigureAwait(false);
+    }
+
     public async Task<bool> StudentNumberExistsAsync(string studentNumber, int? excludeId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(studentNumber)) return false;
@@ -275,6 +270,136 @@ public sealed class StudentsRepository : IStudentsRepository
             if (int.TryParse(raw, out var n) && n > max) max = n;
         }
         return (max + 1).ToString();
+    }
+
+    public async Task<IReadOnlyList<StudentExportRow>> GetAllForExportAsync(CancellationToken ct = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        return await ctx.Students
+            .AsNoTracking()
+            .Include(s => s.Section).ThenInclude(sec => sec.Grade)
+            .Include(s => s.Guardian)
+            .OrderBy(s => s.FullName)
+            .Select(s => new StudentExportRow
+            {
+                StudentNumber = s.StudentNumber,
+                FullName = s.FullName,
+                Gender = s.Gender == Gender.Male ? "ذكر" : "أنثى",
+                BirthDate = s.BirthDate.ToString("yyyy-MM-dd"),
+                NationalId = s.NationalId,
+                Phone = s.Phone,
+                GradeName = s.Section.Grade.NameAr,
+                SectionName = s.Section.NameAr,
+                EnrollmentDate = s.EnrollmentDate.ToString("yyyy-MM-dd"),
+                Status = s.Status == StudentStatus.Active ? "نشط"
+                          : s.Status == StudentStatus.Archived ? "مؤرشف"
+                          : "متخرّج",
+                Address = s.Address,
+                GuardianFullName = s.Guardian.FullName,
+                GuardianRelation = s.Guardian.Relation == GuardianRelation.Father ? "أب"
+                                  : s.Guardian.Relation == GuardianRelation.Mother ? "أم"
+                                  : s.Guardian.Relation == GuardianRelation.Brother ? "أخ"
+                                  : s.Guardian.Relation == GuardianRelation.Sister ? "أخت"
+                                  : s.Guardian.Relation == GuardianRelation.Uncle ? "عم/خال"
+                                  : s.Guardian.Relation == GuardianRelation.Aunt ? "عمة/خالة"
+                                  : s.Guardian.Relation == GuardianRelation.Grandfather ? "جد"
+                                  : s.Guardian.Relation == GuardianRelation.Grandmother ? "جدة"
+                                  : "أخرى",
+                GuardianPhone = s.Guardian.Phone,
+                GuardianAltPhone = s.Guardian.AltPhone,
+                GuardianEmail = s.Guardian.Email,
+                GuardianNationalId = s.Guardian.NationalId,
+                GuardianOccupation = s.Guardian.Occupation,
+                GuardianAddress = s.Guardian.Address,
+                Notes = s.Notes,
+            })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+    }
+
+    public async Task DeleteAllStudentsAsync(CancellationToken ct = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        var strategy = ctx.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+            // Delete in dependency order: dependent rows first, then students, then orphan guardians.
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM AttendanceRecords", ct).ConfigureAwait(false);
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM Marks", ct).ConfigureAwait(false);
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM Payments", ct).ConfigureAwait(false);
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM Installments", ct).ConfigureAwait(false);
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM StudentFees", ct).ConfigureAwait(false);
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM Students", ct).ConfigureAwait(false);
+            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM Guardians", ct).ConfigureAwait(false);
+
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+        }).ConfigureAwait(false);
+    }
+
+    public async Task<int> BulkInsertAsync(IReadOnlyList<StudentSaveModel> models, CancellationToken ct = default)
+    {
+        if (models.Count == 0) return 0;
+
+        await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        var strategy = ctx.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+            var inserted = 0;
+            foreach (var m in models)
+            {
+                ct.ThrowIfCancellationRequested();
+                await InsertCoreAsync(ctx, m, ct).ConfigureAwait(false);
+                inserted++;
+            }
+
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+            return inserted;
+        }).ConfigureAwait(false);
+    }
+
+    private static async Task<int> InsertCoreAsync(NasaqDbContext ctx, StudentSaveModel model, CancellationToken ct)
+    {
+        var guardian = new Guardian
+        {
+            FullName = model.GuardianFullName.Trim(),
+            Relation = model.GuardianRelation,
+            Phone = NullIfEmpty(model.GuardianPhone),
+            AltPhone = NullIfEmpty(model.GuardianAltPhone),
+            Email = NullIfEmpty(model.GuardianEmail),
+            NationalId = NullIfEmpty(model.GuardianNationalId),
+            Occupation = NullIfEmpty(model.GuardianOccupation),
+            Address = NullIfEmpty(model.GuardianAddress),
+        };
+        ctx.Guardians.Add(guardian);
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        var student = new Student
+        {
+            StudentNumber = model.StudentNumber.Trim(),
+            FullName = model.FullName.Trim(),
+            Gender = model.Gender,
+            BirthDate = model.BirthDate.Date,
+            NationalId = NullIfEmpty(model.NationalId),
+            PhotoPath = NullIfEmpty(model.PhotoPath),
+            PhotoBytes = model.PhotoBytes,
+            Phone = NullIfEmpty(model.Phone),
+            Address = NullIfEmpty(model.Address),
+            Notes = NullIfEmpty(model.Notes),
+            EnrollmentDate = model.EnrollmentDate.Date,
+            Status = StudentStatus.Active,
+            SectionId = model.SectionId,
+            GuardianId = guardian.Id,
+        };
+        ctx.Students.Add(student);
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+        return student.Id;
     }
 
     private static string? NullIfEmpty(string? value)

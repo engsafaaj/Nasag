@@ -277,6 +277,215 @@ await strategy.ExecuteAsync(async () =>
 
 ---
 
+## UI Component Standards (Phase 6+ — إلزامية لكل الشاشات)
+
+هذه المعايير اعتُمدت رسمياً في Phase 6 وأصبحت Templates ملزمة لكل شاشات قادمة (الصفوف والشعب، الحضور والغياب، المواد، الدرجات، الرسوم، التقارير، المستخدمون، إلخ). أي مطور / وكيل AI يبني شاشة جديدة **يجب** أن يستخدم هذه المكونات والقواعد كما هي.
+
+### 1. محاذاة العناوين (Page Headers) — **FlowDirection Swap Pattern (إلزامي)**
+
+`HorizontalAlignment="Right"` داخل حاوية `FlowDirection="RightToLeft"` يُعكس بصرياً إلى اليسار في بعض المخططات (خاصة مع `ColumnDefinition Width="*"`). لذلك **لا تعتمد** على `HorizontalAlignment` وحده لتثبيت العنوان على اليمين.
+
+**القاعدة الإلزامية:** غلِّف صف الترويسة بـ `FlowDirection="LeftToRight"`، ضع `Grid` بعمودين، الترويسة في العمود الأيمن (`Auto`)، الإجراءات في العمود الأيسر، ثم أعد الـ FlowDirection إلى `RightToLeft` داخل StackPanel العنوان فقط لضمان تشكيل النص العربي. مثال قياسي:
+
+```xml
+<Grid Grid.Row="0" Margin="0,0,0,14" FlowDirection="LeftToRight">
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
+    <!-- Title pinned to the actual visual right -->
+    <StackPanel Grid.Column="1"
+                FlowDirection="RightToLeft"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center">
+        <TextBlock Text="{Binding TitleAr}"
+                   Style="{StaticResource SectionTitle}"
+                   TextAlignment="Right"
+                   HorizontalAlignment="Right" />
+        <TextBlock Text="{Binding SubtitleAr}"
+                   Style="{StaticResource SectionSubtitle}"
+                   TextAlignment="Right"
+                   HorizontalAlignment="Right"
+                   Margin="0,2,0,0" />
+    </StackPanel>
+</Grid>
+```
+
+عندما يكون هناك زر يميناً (لوحة التحكم Refresh)، أضف عموداً ثالثاً (`Auto`) للزر في `Grid.Column="0"`، واحفظ StackPanel العنوان في `Grid.Column="2"`.
+
+- استخدم `SectionTitle` و`SectionSubtitle` من `Themes/Cards.xaml`.
+- **لا تستخدم `controls:SectionHeader`** لشاشات البيانات (هذا Placeholder قديم).
+
+### 2. شريط الأدوات (Toolbar)
+- صف واحد فقط (Row) داخل `CardBorder` بـ `Padding="14,10"`.
+- **زر الإضافة الرئيسي (Add) لا يوضع في الـ Toolbar** — هو دائماً FAB في الزاوية السفلية اليمنى (انظر القسم 8 ب).
+- ترتيب الأعمدة من اليمين بصرياً إلى اليسار:
+  1. الفلاتر الـ Searchable (الصف، الشعبة، الحالة، …).
+  2. حجم الصفحة (PageSize).
+  3. مربع البحث (يأخذ `Width="*"`).
+  4. زر تحديث البيانات (`IconRefresh`).
+  5. زر مسح الفلاتر (`IconFilterClear`) — **لازم** يستخدم أيقونة مختلفة عن التحديث.
+  6. أزرار التصدير/الاستيراد إن وُجدت.
+- **لا تستخدم نفس الأيقونة لزرّين** في نفس الشريط.
+- **لا تنشئ صفّ Toolbar ثاني** — كل الفلاتر في نفس الصف.
+
+### 3. Comboboxes / Dropdowns
+- **استخدم `Nasag.Controls.SearchableComboBox` فقط** لأي قائمة منسدلة في الفلاتر أو النماذج. الخصائص:
+  - `ItemsSource`, `SelectedItem` (TwoWay), `DisplayMemberPath`, `Placeholder`.
+  - قابلة للبحث (Searchable)، تقترح فورياً، اختيارية (يمكن إفراغها بزر ×)، تُغلق عند فقد التركيز، تدعم Arrow/Enter/Esc.
+- **ممنوع** استخدام `ComboBox` الافتراضي إلا للحقول الـ Enum الثابتة (مثل الجنس، صلة القرابة)؛ وحتى عند ذلك، الـ `Theme` يرسم ComboBox بشكل احترافي.
+- لا تجبر اختياراً مبدئياً (مثل "كل الحالات") — السماح بـ `null` كـ "لا فلتر" أفضل تجربة مستخدم.
+
+### 4. شبكة عرض البيانات (DataGrid)
+- الـ Theme (`Themes/DataGrid.xaml`) يضبط:
+  - `GridLinesVisibility="All"` — خطوط شبكة أفقية وعمودية كاملة.
+  - `HorizontalContentAlignment="Center"` لكل خلية ورأس.
+  - حدود قوية للحاوية (`BorderBrush=BorderStrongBrush`).
+  - Hover خفيف ((TealSoft soft)) و Selected سوفت تيل.
+- في كل عمود، **اضبط** `DataGridTextColumn.ElementStyle` ليجعل النص `HorizontalAlignment="Center"`. للأعمدة المخصصة، الـ `DataTemplate` يستخدم `HorizontalAlignment="Center"`.
+- **الإجراءات في عمود مخصص (`إجراءات`)** بترتيب أيقونات: تعديل → أرشفة (أو استعادة عند الحالة المؤرشفة) → حذف.
+- فعّل `MouseDoubleClick` على الـ DataGrid لفتح Editor الصف.
+- **لا تضع بطاقات إحصائية أعلى الصفحة** — أدمج الإحصائيات في `SubtitleAr` كنص مضغوط (الإستثناء: لوحة التحكم Dashboard).
+
+### 5. الترقيم (Pagination)
+- Footer ثابت أسفل بطاقة الـ DataGrid يحتوي:
+  - Label: "الصفحة X من Y — إجمالي N".
+  - زر السابق + ComboBox للقفز إلى صفحة (Editable + قائمة بكل أرقام الصفحات) + زر التالي.
+  - عند الضغط على Enter داخل الـ ComboBox، انتقل للصفحة المكتوبة.
+- استخدم `PageNumbers` `ObservableCollection<int>` في الـ ViewModel و`JumpToPageCommand`.
+
+### 6. Toast Notifications
+- موقع: **الزاوية اليسرى من الشاشة** (`ToastHost` بـ `FlowDirection=LeftToRight` + `HorizontalAlignment="Left"` داخل Stretch).
+- يحوي 4 حالات: Success / Error / Warning / Info — كل حالة بحدّ ملوّن من اليسار + Icon Bubble + Title (Bold) + Message (Muted) + Close Button.
+- يُسحب تلقائياً بعد 4 ثوانٍ.
+- استخدم `_toasts.Success/Warning/Info/Error(title, message)` بعد كل عملية ناجحة على القاعدة أو رفض Validation.
+
+### 7. MessageBoxes / Dialogs / Warnings
+- **ممنوع منعاً باتاً** استخدام `MessageBox.Show` من Windows. استخدم `IDialogService`:
+  - `ConfirmAsync(...)` للتأكيدات العادية.
+  - `ConfirmDestructiveAsync(...)` للحذف/إلغاء التراجع — يظهر زر أحمر.
+  - `ShowInfoAsync / ShowSuccessAsync / ShowWarningAsync / ShowErrorAsync`.
+- الـ Dialog تحت الغطاء هو `Nasag.Views.Common.NasaqDialog`: نافذة بحواف مدورة، خط Tajawal، RTL، أيقونة ملوّنة في الرأس، أزرار Primary/Secondary بـ DangerButton عند الحذف.
+- للأخطاء التقنية الفعلية، استخدم `IErrorReporter` (نافذة `ErrorWindow` مع زر «نسخ التفاصيل»).
+
+### 8. Buttons
+
+#### أ) أنماط الأزرار العامة
+- `PrimaryButton`: الأزرار الإيجابية داخل النماذج (حفظ، تنفيذ).
+- `SecondaryButton`: الإجراءات الثانوية (تحديث، تصدير، استيراد، رجوع).
+- `GhostButton`: الإجراءات الخفيفة (إلغاء، إغلاق، رابط جانبي).
+- `DangerButton`: الحذف القوي (يُستخدم تلقائياً داخل `ConfirmDestructiveAsync`).
+- `IconButton` / `RowActionButton`: أيقونات صغيرة في الجداول وشريط العنوان.
+- `BubbleButton`: زر شبه دائري Pill بظل تيل خفيف — يُستخدم لإبراز إجراءات احتفالية داخل النماذج فقط، **لا** يصلح بديلاً للـ FAB.
+
+#### ب) **FabButton — الـ CTA الوحيد لشاشات القائمة (إلزامي)**
+زر **دائري كامل 60×60** (CornerRadius=999) بخلفية Teal + Drop shadow Teal soft، يحوي أيقونة بيضاء فقط بدون نص. **لا يوضع في الـ Toolbar** — يوضع كـ overlay فوق محتوى الصفحة، مثبَّتاً في **الزاوية السفلية اليمنى** بمسافة 28px من الحافة.
+
+**النمط القياسي:**
+```xml
+<Grid FlowDirection="LeftToRight"
+      Visibility="{Binding ShowList, Converter={StaticResource BoolToVisibility}}">
+    <Button Style="{StaticResource FabButton}"
+            Command="{Binding AddStudentCommand}"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Margin="0,0,28,28"
+            ToolTip="إضافة طالب (Ctrl+N)">
+        <Path Data="{StaticResource IconAdd}"
+              Stroke="White"
+              StrokeThickness="2.6"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              Fill="Transparent"
+              Stretch="Uniform"
+              Width="24" Height="24" />
+    </Button>
+</Grid>
+```
+
+ملاحظات:
+- **FlowDirection=LeftToRight** على الـ Grid يضمن أن `HorizontalAlignment="Right"` تعني الحافة البصرية اليمنى الفعلية.
+- أخفِ الـ FAB في وضع المحرر (`ShowEditor`) — لا يجب أن يظهر فوق نموذج التعديل.
+- استخدم Z-Order طبيعي (آخر عنصر داخل الـ Grid الخارجي قبل LoadingOverlay) لضمان ظهوره فوق كل شيء.
+
+### 9. Photo / Image Upload
+- استخدم `IFileService.PickImage()` (يقبل Owner اختياري).
+- منطقة الصورة كاملة قابلة للنقر (Button مع Template مخصص) — تظهر فارغة بأيقونة كاميرا + نص "اضغط لاختيار صورة" + قائمة الصيغ المدعومة.
+- الصورة المحفوظة في `byte[]` PhotoBytes، تُعرض عبر `BytesToImageSourceConverter`.
+
+### 10. Keyboard Shortcuts
+- **شاشات القوائم** (Students, Classes, …): فعّل عبر `UserControl.InputBindings`:
+  - `Ctrl+N` → إضافة عنصر جديد.
+  - `F5` → تحديث.
+  - `Delete` → حذف الصف المحدد.
+  - `Ctrl+F` → التركيز على مربع البحث (يُحقن في code-behind).
+- **شاشات النماذج (Editors)**: فعّل:
+  - `Ctrl+S` → حفظ.
+  - `Escape` → إلغاء/رجوع.
+
+### 11. Import / Export Patterns
+- **التصدير:** `IExcelService.ExportStudentsAsync(path, rows)` — ينتج ملف `.xlsx` احترافي بأعمدة عربية، رأس مجمَّد، Banded Rows، حدود رفيعة، Auto-fit. الأعمدة 20 عمود قياسي للطلاب.
+- **الاستيراد:** عبر `StudentImportWizard` (نافذة Modal بـ 4 خطوات: اختيار الملف → مراجعة الصفوف الصحيحة والخاطئة → اختيار طريقة (إضافة / حذف ثم استيراد) → نتيجة). كل خطوة تظهر Stepper مرئي. يجب تقديم زر "تنزيل قالب فارغ" دائماً.
+
+### 12. User Preferences
+- إعدادات المستخدم (RememberMe، حجم الصفحة، ترتيب الطلاب، …) تُحفظ في `%LOCALAPPDATA%\Nasaq\prefs.json` عبر `IUserPreferencesService`.
+- **ليست بيانات قابلة للنسخ الاحتياطي** — هي تفضيلات Per-Machine، لذلك مستثناة من قاعدة "كل البيانات في DB".
+- لا تضف خاصية جديدة في `UserPreferences` بدون توثيقها هنا.
+
+### 13. منع تنشيط Setter-Cascades في المنشئ (CRITICAL)
+
+أي PageViewModel يحتوي على خصائص `[ObservableProperty]` بحقول `partial OnXxxChanged` تستدعي `ReloadAsync` أو عمليات DB، **يجب** أن يستخدم النمط التالي في المنشئ:
+
+```csharp
+private bool _isInitializing = true;
+
+public StudentsViewModel(...)
+{
+    // 1) Assign backing fields DIRECTLY (skip property setters so the
+    //    OnXxxChanged source-generated callbacks don't fire).
+    _selectedStatus = StatusOptions[0];
+    _pageSize = prefs.Current.StudentsPageSize;
+
+    _isInitializing = false;
+}
+
+partial void OnSelectedStatusChanged(StudentStatusFilter value)
+{
+    if (_isInitializing) return;   // belt-and-suspenders
+    ResetPageAndReload();
+}
+```
+
+**لماذا:** بدون هذا النمط، المنشئ يُطلق 2-3 `ReloadAsync` متداخلة قبل ظهور الصفحة، فتظهر للمستخدم كأنها مُجمَّدة لمدة 500ms-1s. أيضاً، Setter-cascades قد تتسبب في حالات سباق على `ObservableCollection<T>` (الـ DataGrid يربط معها) عبر الـ Dispatcher.
+
+**أيضاً:** أي `[RelayCommand]` Load/Reload **يجب** أن يحتوي على re-entrance guard:
+
+```csharp
+private bool _reloadInFlight;
+[RelayCommand]
+public async Task ReloadAsync(CancellationToken ct = default)
+{
+    if (_reloadInFlight) return;
+    _reloadInFlight = true;
+    try { await ReloadCoreAsync(ct); }
+    finally { _reloadInFlight = false; IsLoading = false; }
+}
+```
+
+استخرج جسم العملية إلى `private async Task ReloadCoreAsync(...)` ليُستدعى Recursive (مثلاً عند تصحيح صفحة Pagination خارج النطاق) دون الاصطدام بـ guard.
+
+### 14. النقاط المرجعية (Reference Files)
+أي شاشة جديدة، انسخ النمط من هذه الملفات كـ Source of Truth:
+- `Views/Pages/Students/StudentsView.xaml` — Page Layout كامل (Header + Toolbar + DataGrid + Pagination).
+- `Views/Pages/Students/StudentEditorView.xaml` — Form Layout كامل (Action Bar + Cards + Photo Dropzone).
+- `Views/Pages/Students/StudentImportWizard.xaml` — Multi-step Wizard.
+- `Views/Common/NasaqDialog.xaml` — Custom Modal Dialog.
+- `Controls/SearchableComboBox.xaml` — Combobox القياسي.
+- `Themes/DataGrid.xaml` — أنماط الجدول.
+- `Themes/Buttons.xaml` — أنماط الأزرار (BubbleButton, PrimaryButton, …).
+
+---
+
 ## Conflict Resolution
 
 في حال تعارض بين هذا الملف و`Agent.md`:

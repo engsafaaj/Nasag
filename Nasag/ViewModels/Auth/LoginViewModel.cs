@@ -9,11 +9,25 @@ public sealed partial class LoginViewModel : ObservableObject
 {
     private readonly IAuthService _auth;
     private readonly ICurrentUserService _currentUser;
+    private readonly IUserPreferencesService _prefs;
 
-    public LoginViewModel(IAuthService auth, ICurrentUserService currentUser)
+    public LoginViewModel(
+        IAuthService auth,
+        ICurrentUserService currentUser,
+        IUserPreferencesService prefs)
     {
         _auth = auth;
         _currentUser = currentUser;
+        _prefs = prefs;
+
+        // Hydrate Remember Me from local preferences on construction so that
+        // the username field is pre-filled when the login window appears.
+        var remembered = _prefs.Current.RememberedUsername;
+        if (!string.IsNullOrWhiteSpace(remembered))
+        {
+            _username = remembered;
+            _rememberMe = true;
+        }
     }
 
     [ObservableProperty]
@@ -49,6 +63,10 @@ public sealed partial class LoginViewModel : ObservableObject
 
             if (result.IsSuccess && result.User is not null)
             {
+                // Persist (or forget) the username based on the checkbox state.
+                _prefs.Current.RememberedUsername = RememberMe ? Username.Trim() : null;
+                _prefs.Save();
+
                 _currentUser.SignIn(result.User);
                 return;
             }

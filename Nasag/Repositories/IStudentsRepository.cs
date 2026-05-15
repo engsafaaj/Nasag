@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Nasag.Models;
+using Nasag.Services;
 
 namespace Nasag.Repositories;
+
+public enum StudentSortMode { Alphabetical, NewestFirst }
 
 public interface IStudentsRepository
 {
@@ -15,8 +18,21 @@ public interface IStudentsRepository
     Task<int> CreateAsync(StudentSaveModel model, CancellationToken ct = default);
     Task UpdateAsync(StudentSaveModel model, CancellationToken ct = default);
     Task SetStatusAsync(int studentId, StudentStatus status, CancellationToken ct = default);
+    Task DeleteAsync(int studentId, CancellationToken ct = default);
     Task<bool> StudentNumberExistsAsync(string studentNumber, int? excludeId, CancellationToken ct = default);
     Task<string> NextStudentNumberAsync(CancellationToken ct = default);
+
+    /// <summary>Returns every student row formatted for Excel export (no paging, no filtering).</summary>
+    Task<IReadOnlyList<StudentExportRow>> GetAllForExportAsync(CancellationToken ct = default);
+
+    /// <summary>Deletes every student + their guardians (cascade clean-up before a full replace import).</summary>
+    Task DeleteAllStudentsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Bulk-imports valid student rows. Returns the number of inserted records.
+    /// Caller is responsible for validation and grade/section name → id resolution.
+    /// </summary>
+    Task<int> BulkInsertAsync(IReadOnlyList<StudentSaveModel> models, CancellationToken ct = default);
 }
 
 public sealed record StudentsQuery(
@@ -25,7 +41,8 @@ public sealed record StudentsQuery(
     int? SectionId,
     StudentStatus? Status,
     int Page,
-    int PageSize);
+    int PageSize,
+    StudentSortMode Sort = StudentSortMode.Alphabetical);
 
 public sealed record StudentListPage(
     IReadOnlyList<StudentRow> Items,

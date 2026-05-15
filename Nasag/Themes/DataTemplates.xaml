@@ -43,7 +43,7 @@
         <views:PagePlaceholderView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
-        <views:PagePlaceholderView />
+        <views:SettingsView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:BackupViewModel}">
         <views:PagePlaceholderView />
