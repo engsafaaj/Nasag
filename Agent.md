@@ -381,17 +381,28 @@
 ---
 
 ### Phase 5 — Dashboard
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-15)
 
 **Tasks:**
-- شاشة `DashboardView` مطابقة للتصميم (1): 5 بطاقات إحصائية + رسم بياني خطي للحضور + دونات للنسبة + بطاقات تنبيهات + جدول آخر الأنشطة.
-- ربط البيانات بـ DashboardService يجمع الأرقام من Repositories.
-- استخدام مكتبة رسوم بيانية (LiveCharts2).
+- [x] إضافة حزمة `LiveChartsCore.SkiaSharpView.WPF` 2.0.0-rc5.4 + إخفاء تحذيرات NU1701 الناتجة عن SkiaSharp/OpenTK عبر `<NoWarn>$(NoWarn);NU1701</NoWarn>`.
+- [x] [IDashboardService](Nasag/Services/IDashboardService.cs) + [DashboardService](Nasag/Services/DashboardService.cs): استدعاء واحد `GetSnapshotAsync` يُرجع `DashboardSnapshot` مكوّناً من `DashboardStats` + `AttendanceLast7Days` + `AttendanceBreakdown` (اليوم) + `DashboardAlerts` + `RecentActivity[]`. كل الاستعلامات async عبر `IDbContextFactory<NasaqDbContext>` (CountAsync/SumAsync/GroupBy + projection بدون tracking).
+- [x] [DashboardViewModel](Nasag/ViewModels/Pages/DashboardViewModel.cs) منفصل عن `PageViewModel.cs`: حقن `IDashboardService`، خصائص ObservableProperty لكل البطاقات والكسور، `ObservableCollection<RecentActivity> RecentActivities`، تحضير `Axis[]` و`ISeries[]` لكل من خط الحضور (LineSeries<double>) ودونات اليوم (PieSeries<double> 4 شرائح Success/Danger/Warning/Info)، Empty-state آمن: شريحة رمادية واحدة عندما لا توجد سجلات حضور لليوم. `RefreshCommand` للتحديث اليدوي. `ActivateAsync` يُستدعى تلقائياً من Shell عند الدخول للقسم.
+- [x] [DashboardView.xaml](Nasag/Views/Pages/DashboardView.xaml) مطابق للتصميم (1): شريط رأس مع زر تحديث Secondary، صف 5 بطاقات إحصائية (StatCard موحّد بألوان مختلفة: Teal/Info/Navy/Danger/Success)، صف الرسوم بنسبة 2:1 (Line Chart 240px + Donut 200px مع نسبة الحضور المركزية ومفتاح ألوان UniformGrid 2×2)، صف سفلي 1:2 (4 بطاقات تنبيهات يسار + قائمة آخر الأنشطة يمين بفواصل سفلية)، `LoadingOverlay` فوق كامل الشاشة.
+- [x] الرسوم تُغلَّف داخل `FlowDirection="LeftToRight"` لتجنّب عكس محاور SkiaSharp، مع overlay عربي RTL يُعرض بانر "لا توجد سجلات حضور بعد" عند `HasAttendanceHistory=false`.
+- [x] [BoolToVisibilityConverter](Nasag/Helpers/BoolToVisibilityConverter.cs) + [ActivityKindConverters](Nasag/Helpers/ActivityKindConverters.cs) (Brush + Icon) + [DateToRelativeArabicConverter](Nasag/Helpers/DateToRelativeArabicConverter.cs) (يطبع: الآن / قبل دقيقة(دقيقتين/N) / قبل ساعة(ساعتين/N) / أمس / قبل يومين / قبل N أيام / yyyy/MM/dd) — كلها في `/Helpers`.
+- [x] [DataTemplates.xaml](Nasag/Themes/DataTemplates.xaml): استبدال `PagePlaceholderView` بـ `DashboardView` لـ `DashboardViewModel`.
+- [x] [App.xaml.cs](Nasag/App.xaml.cs): تسجيل `IDashboardService → DashboardService` Singleton.
+- [x] حذف الـ stub `DashboardViewModel` القديم من `PageViewModel.cs` لصالح الملف المنفصل.
+- [x] إصلاح ترويسة الصفحة: استبدال DockPanel بـ Grid عمودَين بعد ملاحظة أن `DockPanel.Dock="Right"` و`HorizontalAlignment="Left"` معاً في وضع RTL يدفعان العنوان والزر إلى نفس الجانب البصري (اليسار) بدل توزيعهما. الحل النهائي: Column 0 (`*`) للعنوان `HorizontalAlignment="Right"` يُرسم على اليمين، Column 1 (`Auto`) للزر يُرسم على اليسار.
 
 **Acceptance Criteria:**
-- الأرقام تُحسب من قاعدة البيانات الحقيقية (Seed).
-- الرسم البياني يعرض بيانات.
-- RTL سليم.
+- [x] الأرقام تُحسب من قاعدة البيانات الحقيقية: عدد الطلاب النشطين، الشعب، المواد، إجمالي المحصّل، إجمالي المتبقي، أقساط متأخرة، أقساط مستحقة هذا الأسبوع — كلها من Seeder الفعلي (30 طالب، 12 شعبة، 36 مادة، StudentFees + 4 أقساط لكل طالب).
+- [x] الرسم البياني يعرض بيانات حقيقية من `AttendanceRecords` بتجميع per-day GroupBy + Empty-state واضح ("لا توجد سجلات حضور بعد") عندما يكون الجدول فارغاً (الحالة الراهنة لأن Seeder لم يُدخل حضوراً).
+- [x] الدونات يعرض شريحة رمادية واحدة عندما لا توجد بيانات حضور لليوم بدلاً من فشل LiveCharts بمصفوفة فارغة.
+- [x] RTL سليم: الواجهة كاملة `FlowDirection=RightToLeft`، الرسوم وحدها LeftToRight لتجنّب عكس المحاور.
+- [x] `LoadingOverlay` يظهر أثناء `LoadAsync` ويختفي في `finally` حتى لو فشل الاستعلام.
+- [x] فشل DB يُعرض في `StatusMessage` بدلاً من crash.
+- [x] Build: 0 Warning / 0 Error. التطبيق يقلع، يتصل بـ DB، Login يفتح بدون استثناء (الدخول الفعلي للوحة يتطلب تفاعل مستخدم).
 
 ---
 
@@ -568,7 +579,7 @@
 | Phase 2 — Shell & Design System | ✅ Completed | 2026-05-15 | 2026-05-15 | MainShell كاملاً (Sidebar+TopBar+ContentHost) + 7 ResourceDictionaries (Buttons/Inputs/DataGrid/Cards/Pills/Icons/DataTemplates) + 5 UserControls (StatCard/SectionHeader/SidebarMenuItem/LoadingOverlay/ConnectionBanner) + IBusyService/IConnectionMonitor/INavigationService + 12 Page VMs + Placeholder view. Build 0/0. |
 | Phase 3 — Database | ✅ Completed | 2026-05-15 | 2026-05-15 | 17 Entities + Enums + NasaqDbContext (Fluent API كامل) + InitialCreate migration + IDatabaseInitializer (Migrate ديناميكياً) + DbSeeder (4 أدوار/admin/12 صف/12 شعبة/36 مادة/30 طالب/خطط رسوم) + IRepository<T>/Repository<T> + ConnectionMonitor متصل بـ CanConnectAsync + EnableRetryOnFailure + BCrypt للتجزئة. Build 0/0. |
 | Phase 4 — Auth | ✅ Completed | 2026-05-15 | 2026-05-15 | LoginView بتخطيط جزأين (Navy brand + form بيضاء) + IAuthService (BCrypt verify) + ICurrentUserService بـ SignedIn/Out events + LoginViewModel + App.OnStartup يدير دورة Login↔Shell + ShutdownMode=OnExplicitShutdown + TopBar يعرض الاسم/الحرف/الدور + LogoutCommand. Converters.xaml + InverseBoolToVisibility. Build 0/0. |
-| Phase 5 — Dashboard | Pending | - | - | - |
+| Phase 5 — Dashboard | ✅ Completed | 2026-05-15 | 2026-05-15 | LiveCharts2 (rc5.4) + IDashboardService/DashboardService snapshot واحد + DashboardViewModel منفصل (5 stat cards + line chart للحضور 7 أيام + donut اليوم + 4 بطاقات تنبيهات + قائمة آخر الأنشطة) + DashboardView مطابق للتصميم (1) + Empty-states آمنة لكل جدول فارغ (LoadingOverlay، Refresh، StatusMessage عند الفشل) + 3 Converters جديدة (BoolToVisibility/ActivityKind*/DateToRelativeArabic) + NoWarn NU1701. Build 0/0. |
 | Phase 6 — Students | Pending | - | - | - |
 | Phase 7 — Classes | Pending | - | - | - |
 | Phase 8 — Attendance | Pending | - | - | - |
@@ -618,6 +629,15 @@
 | 2026-05-15 | `PasswordBox` مربوط بـ ViewModel عبر code-behind وليس Binding | WPF لا يكشف `Password` كـ DependencyProperty لأسباب أمنية؛ التعامل اليدوي عبر `PasswordChanged` معيار رسمي ولا يحفظ النص في ذاكرة managed أطول من اللازم |
 | 2026-05-15 | `MainShellViewModel` يستمع لـ `CurrentUserService.SignedIn` ويُعيد التنقل إلى Dashboard | الـ VM Singleton لذا يحتاج لإعادة تعيين حالته بين الجلسات بدلاً من إنشاء instance جديد (الذي سيتطلب Scope) |
 | 2026-05-15 | فصل `Converters.xaml` كـ ResourceDictionary مستقل وإضافته في `App.xaml` قبل Common | Converters تُستخدم في عدة Themes/Views؛ فصلها يمنع التكرار ويبقي الترتيب صحيحاً (Common يعتمد عليها لاحقاً) |
+| 2026-05-15 | اعتماد `LiveChartsCore.SkiaSharpView.WPF` 2.0.0-rc5.4 لرسوم Phase 5 | الـ rc5 مستقر داخل LiveCharts2 v2 ومدعوم رسمياً لـ WPF .NET 8 + ميزات Cartesian/Pie/PolarChart؛ مرشّح Agent.md لم يفرض إصداراً سابقاً |
+| 2026-05-15 | تغليف `CartesianChart` و`PieChart` بـ `FlowDirection="LeftToRight"` داخل لوحة Dashboard RTL | محاور SkiaSharp تُرسم بإحداثيات شاشة فعلية؛ تركها في حاوية RTL يقلب اتجاه الزمن على المحور X ويعكس التسميات. الحل النهائي: إبقاء التطبيق كله RTL، وتحويل حاوية الرسم فقط لـ LTR. النصوص العربية فوق الرسم تُغلَّف بـ RTL StackPanel منفصل |
+| 2026-05-15 | `IDashboardService` يُرجع `DashboardSnapshot` واحد بدل سلسلة Calls من الـ ViewModel | تقليل round-trips إلى DbContextFactory، استعلام واحد متماسك يضمن snapshot لحظي متّسق، يبسط معالجة الخطأ في `RefreshCommand` (try واحد) |
+| 2026-05-15 | استخدام Grid عمودَين بدل DockPanel لترويسة DashboardView | في وضع RTL تتعارض دلالات `DockPanel.Dock="Right"` مع `HorizontalAlignment="Left"` فيتجمعان معاً على الجانب البصري نفسه. Grid مع `*` ثم `Auto` يضمن وضوحاً صريحاً: العمود 0 (يميناً في RTL) للعنوان، العمود 1 (يساراً) للزر — قاعدة عامة تنطبق على كل ترويسات الشاشات اللاحقة |
+| 2026-05-15 | تغليف `CartesianChart` و`PieChart` بـ `FlowDirection="LeftToRight"` رغم أن الواجهة RTL | SkiaSharp يعكس المحور X والـ legends عند `RightToLeft`؛ overlay عربي RTL منفصل يعرض رسائل الـ empty-state دون مسّ بنية الرسم |
+| 2026-05-15 | إخفاء تحذيرات NU1701 عبر `<NoWarn>` في csproj | تبعات SkiaSharp.Views.WPF + OpenTK تُحزَّم لـ net4x لكنها تعمل على net8.0-windows داخل WPF؛ القرار محدود لهذا المشروع للحفاظ على Build 0 Warning |
+| 2026-05-15 | DashboardService يُرجع `record` snapshot واحد بدل عدة Tasks متوازية | استدعاء واحد من الـ ViewModel أبسط للـ Loading/Error handling، ويستخدم سياق DbContext واحد في كل استعلام (وفّرناها كذلك) |
+| 2026-05-15 | فصل `DashboardViewModel` في ملف خاص خارج `PageViewModel.cs` | الـ VM للـ Dashboard كبر بشكل كافٍ (chart axes/series + 18 خاصية)؛ بقية PageVMs لا تزال stub داخل الملف المشترك حتى تكتمل مراحلها |
+| 2026-05-15 | Empty-state لـ donut اليوم عبر شريحة رمادية واحدة بقيمة 1 | LiveCharts2 يفشل عند `Values=Array.Empty<>()`؛ الشريحة الرمادية تحفظ الشكل البصري ويظهر فوقها overlay "0٪" |
 
 ---
 
@@ -650,4 +670,4 @@
 6. حدّث القسم 8 و9 بعد كل عمل.
 7. عند الانتهاء من جلسة، اذكر: ما تم، حالة Build، الملفات المهمة، المرحلة التالية.
 
-**الحالة الحالية:** Phase 0/1/2/3/4 اكتملت. المرحلة التالية هي **Phase 5 — Dashboard** (شاشة DashboardView مطابقة للتصميم 1: 5 بطاقات إحصائية + رسم خطي للحضور + دونات نسبة + بطاقات تنبيهات + جدول آخر الأنشطة، DashboardService يجمع الأرقام من Repositories، اختيار LiveCharts2 كمكتبة رسوم بيانية). لا تبدأ Phase 5 دون طلب صريح من المستخدم.
+**الحالة الحالية:** Phase 0/1/2/3/4/5 اكتملت. المرحلة التالية هي **Phase 6 — Students and Guardians** (قائمة الطلاب مطابقة للتصميم 3: بطاقات إحصائية + شريط بحث وفلاتر + DataGrid بأعمدة كاملة، شاشة إضافة/تعديل طالب مطابقة للتصميم 4 بأقسام بيانات الطالب وولي الأمر والعنوان، رفع صورة، أرشفة Soft delete، Pagination). لا تبدأ Phase 6 دون طلب صريح من المستخدم.

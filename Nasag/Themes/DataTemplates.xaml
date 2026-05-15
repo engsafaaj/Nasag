@@ -11,7 +11,7 @@
     -->
 
     <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
-        <views:PagePlaceholderView />
+        <views:DashboardView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:StudentsViewModel}">
         <views:PagePlaceholderView />

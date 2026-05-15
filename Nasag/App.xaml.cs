@@ -162,6 +162,7 @@ public partial class App : Application
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<ICurrentUserService, CurrentUserService>();
+        services.AddSingleton<IDashboardService, DashboardService>();
 
         // Auth
         services.AddTransient<LoginViewModel>();

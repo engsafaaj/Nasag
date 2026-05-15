@@ -26,12 +26,6 @@ public abstract partial class PageViewModel : ObservableObject
     public virtual Task ActivateAsync(CancellationToken ct = default) => Task.CompletedTask;
 }
 
-public sealed class DashboardViewModel : PageViewModel
-{
-    public override string TitleAr => "لوحة التحكم";
-    public override string SubtitleAr => "نظرة عامة على بيانات المدرسة وآخر الأنشطة";
-}
-
 public sealed partial class StudentsViewModel : PageViewModel
 {
     private readonly IRepository<Student> _studentsRepo;
