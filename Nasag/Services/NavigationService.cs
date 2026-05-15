@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Nasag.ViewModels;
 using Nasag.ViewModels.Pages;
+using Nasag.ViewModels.Pages.Students;
 
 namespace Nasag.Services;
 

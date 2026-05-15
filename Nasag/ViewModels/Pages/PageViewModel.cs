@@ -1,11 +1,6 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.EntityFrameworkCore;
-using Nasag.Data;
-using Nasag.Models;
-using Nasag.Repositories;
 
 namespace Nasag.ViewModels.Pages;
 
@@ -24,44 +19,6 @@ public abstract partial class PageViewModel : ObservableObject
     /// Called by the shell whenever the page becomes active. Override to load data.
     /// </summary>
     public virtual Task ActivateAsync(CancellationToken ct = default) => Task.CompletedTask;
-}
-
-public sealed partial class StudentsViewModel : PageViewModel
-{
-    private readonly IRepository<Student> _studentsRepo;
-
-    [ObservableProperty]
-    private int _studentsCount;
-
-    public StudentsViewModel(IRepository<Student> studentsRepo)
-    {
-        _studentsRepo = studentsRepo;
-    }
-
-    public override string TitleAr => "الطلاب";
-    public override string SubtitleAr => StudentsCount > 0
-        ? $"إدارة بيانات الطلاب — عدد الطلاب: {StudentsCount}"
-        : "إدارة بيانات الطلاب والبحث والفلترة";
-
-    partial void OnStudentsCountChanged(int value) => OnPropertyChanged(nameof(SubtitleAr));
-
-    public override async Task ActivateAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            IsLoading = true;
-            StatusMessage = null;
-            StudentsCount = await _studentsRepo.CountAsync(ct).ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "تعذّر تحميل بيانات الطلاب: " + ex.Message;
-        }
-        finally
-        {
-            IsLoading = false;
-        }
-    }
 }
 
 public sealed class ClassesViewModel : PageViewModel

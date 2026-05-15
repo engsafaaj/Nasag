@@ -407,19 +407,31 @@
 ---
 
 ### Phase 6 — Students and Guardians
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-15)
 
 **Tasks:**
-- شاشة قائمة الطلاب (تصميم 3): بطاقات إحصائية أعلى، شريط بحث وفلاتر، DataGrid بأعمدة (رقم الطالب، الاسم، الشعبة، الصف، الحالة، الجوال، ولي الأمر، إجراءات).
-- شاشة إضافة/تعديل طالب (تصميم 4): أقسام (بيانات الطالب، بيانات ولي الأمر، العنوان والملاحظات)، رفع صورة، حفظ/إلغاء.
-- بحث، فلترة حسب الصف/الشعبة/الحالة، Pagination.
-- أرشفة طالب (Soft delete عبر Status).
+- [x] [IStudentsRepository](Nasag/Repositories/IStudentsRepository.cs) + [StudentsRepository](Nasag/Repositories/StudentsRepository.cs) متخصص: `SearchAsync` (بحث + فلترة حسب صف/شعبة/حالة + Pagination + Include للعلاقات + Projection لـ `StudentRow`)، `GetStatsAsync` (Total/Active/Archived عبر GroupBy)، `GetLookupsAsync` (الصفوف والشعب)، `GetForEditAsync` (Projection شامل لـ `StudentEditorPayload` بكل بيانات الطالب وولي الأمر)، `CreateAsync` و`UpdateAsync` كلاهما داخل Transaction (إنشاء/تحديث Guardian + Student معاً)، `SetStatusAsync` للأرشفة/الاستعادة، `StudentNumberExistsAsync` لفحص التفرد، `NextStudentNumberAsync` لتوليد رقم تسلسلي تلقائي.
+- [x] [IDialogService](Nasag/Services/IDialogService.cs) + [DialogService](Nasag/Services/DialogService.cs): تأكيد/معلومة/خطأ بـ `MessageBoxOptions.RtlReading | RightAlign` على Dispatcher مع TaskCompletionSource ليعمل من background.
+- [x] [IFileService](Nasag/Services/IFileService.cs) + [FileService](Nasag/Services/FileService.cs): `PickImage` (Microsoft.Win32.OpenFileDialog مع فلتر صور) + `SaveStudentPhotoAsync` (نسخ آمن إلى `%LocalAppData%/Nasaq/Photos/Students/{guid}.ext` async، يبقي الأصل سليماً).
+- [x] [StudentsViewModel](Nasag/ViewModels/Pages/Students/StudentsViewModel.cs): إدارة الوضع (List/Editor)، فلاتر (SearchText بـ Debounce 300ms، GradeOption، SectionOption مفلترة حسب Grade المختار، StudentStatusFilter)، Pagination (Page/PageSize/PageSizeOptions/TotalCount/TotalPages مع NotifyCanExecuteChanged للأزرار)، Stats (Total/Active/Archived)، Commands (ReloadCommand/AddStudent/EditStudent/ArchiveStudent/RestoreStudent/ClearFilters/NextPage/PrevPage)، Messaging مع Editor عبر Saved/Cancelled events.
+- [x] [StudentEditorViewModel](Nasag/ViewModels/Pages/Students/StudentEditorViewModel.cs): دورتا حياة (LoadForCreateAsync مع NextStudentNumberAsync، LoadForEditAsync مع GetForEditAsync)، حقول الطالب وولي الأمر، اختيار صف يفلتر الشعب الظاهرة، StagedPhotoSource (مسار محلي قبل الحفظ) + PhotoPath (المسار النهائي بعد النسخ)، PickPhoto/RemovePhoto، Validation عربي، SaveAsync (يفحص StudentNumberExistsAsync ثم ينسخ الصورة عبر SaveStudentPhotoAsync ثم Create/Update)، Cancel، EnumOption<T> generic record للقوائم المنسدلة العربية للجنس وصلة القرابة.
+- [x] [StudentsView.xaml](Nasag/Views/Pages/Students/StudentsView.xaml) مطابق للتصميم 3: Header (عنوان يميناً + زر تحديث يساراً) + 3 stat cards (Total/Active/Archived) + Toolbar (بحث + 4 ComboBoxes فلاتر + زر "مسح الفلاتر" + زر "إضافة طالب" Primary) + DataGrid (رقم الطالب، الاسم بـ avatar دائري بلون Teal مع الحرف الأول، الصف، الشعبة، Status pill ملوّنة، الجوال، ولي الأمر، عمود إجراءات: تعديل/أرشفة/استعادة) + Empty-state ودود + Pagination footer (السابق/التالي + label "الصفحة X من Y — إجمالي N").
+- [x] [StudentEditorView.xaml](Nasag/Views/Pages/Students/StudentEditorView.xaml) مطابق للتصميم 4: Header (Breadcrumb "الطلاب › إضافة/تعديل" + زر "رجوع للقائمة") + Error banner عربي بـ DataTrigger + 3 بطاقات مرقّمة (1: بيانات الطالب — اسم/رقم/جنس/تاريخ ميلاد/هوية/جوال/صف/شعبة/تاريخ تسجيل، 2: بيانات ولي الأمر — اسم/صلة/جوال/جوال احتياطي/إيميل/هوية/مهنة، 3: العنوان والملاحظات) + لوحة الصورة الجانبية (200×200 placeholder + ImageBrush للصورة + اختر/إزالة + قائمة الصيغ المدعومة) + Footer (إلغاء + حفظ Primary) + ربط `IsEnabled` بـ `IsBusy` عبر InverseBoolConverter جديد.
+- [x] Helpers جديدة: [StudentConverters](Nasag/Helpers/StudentConverters.cs) (StudentStatus → عربي/Background/Foreground/Equals، Gender → عربي، InitialLetter للحرف الأول، PathToImageSource بـ BitmapImage مجمَّد، StringNotEmptyToBool) + [InverseBoolConverter](Nasag/Helpers/InverseBoolConverter.cs).
+- [x] [DataTemplates.xaml](Nasag/Themes/DataTemplates.xaml): استبدال PagePlaceholderView لـ StudentsViewModel بـ StudentsView (إضافة namespaces vmStudents/viewsStudents).
+- [x] [App.xaml.cs](Nasag/App.xaml.cs) DI: تسجيل IStudentsRepository، IDialogService، IFileService، StudentEditorViewModel، StudentsViewModel من namespace جديد.
+- [x] [NavigationService.cs](Nasag/Services/NavigationService.cs): تحديث using لـ `Nasag.ViewModels.Pages.Students`.
+- [x] حذف الـ stub القديم من `PageViewModel.cs` للنسخة المتقدمة.
 
 **Acceptance Criteria:**
-- إضافة طالب جديد وحفظه.
-- تعديل طالب موجود.
-- أرشفة طالب (لا يظهر في الافتراضي).
-- البحث والفلاتر تعمل لحظياً.
+- [x] إضافة طالب جديد وحفظه (مع Guardian جديد ضمن Transaction واحدة).
+- [x] تعديل طالب موجود (يحمّل بيانات الطالب وولي الأمر، يحفظ كلاهما معاً).
+- [x] أرشفة طالب (تأكيد عبر DialogService، Status=Archived، يختفي من فلتر "نشط")، واستعادته يعيده Active.
+- [x] البحث يعمل لحظياً مع Debounce 300ms (اسم/رقم طالب/هوية/جوال/اسم ولي الأمر).
+- [x] الفلاتر (الصف، الشعبة، الحالة، حجم الصفحة) تعيد التحميل تلقائياً مع إعادة Page=1.
+- [x] Pagination صحيح: السابق/التالي يُعطّلان عند الحدود، Label يحدّث.
+- [x] Photo upload يعمل: نسخ إلى LocalAppData دون تعديل الأصل، عرض ImageBrush للمعاينة.
+- [x] Build: 0 Warning / 0 Error.
 
 ---
 
@@ -580,7 +592,7 @@
 | Phase 3 — Database | ✅ Completed | 2026-05-15 | 2026-05-15 | 17 Entities + Enums + NasaqDbContext (Fluent API كامل) + InitialCreate migration + IDatabaseInitializer (Migrate ديناميكياً) + DbSeeder (4 أدوار/admin/12 صف/12 شعبة/36 مادة/30 طالب/خطط رسوم) + IRepository<T>/Repository<T> + ConnectionMonitor متصل بـ CanConnectAsync + EnableRetryOnFailure + BCrypt للتجزئة. Build 0/0. |
 | Phase 4 — Auth | ✅ Completed | 2026-05-15 | 2026-05-15 | LoginView بتخطيط جزأين (Navy brand + form بيضاء) + IAuthService (BCrypt verify) + ICurrentUserService بـ SignedIn/Out events + LoginViewModel + App.OnStartup يدير دورة Login↔Shell + ShutdownMode=OnExplicitShutdown + TopBar يعرض الاسم/الحرف/الدور + LogoutCommand. Converters.xaml + InverseBoolToVisibility. Build 0/0. |
 | Phase 5 — Dashboard | ✅ Completed | 2026-05-15 | 2026-05-15 | LiveCharts2 (rc5.4) + IDashboardService/DashboardService snapshot واحد + DashboardViewModel منفصل (5 stat cards + line chart للحضور 7 أيام + donut اليوم + 4 بطاقات تنبيهات + قائمة آخر الأنشطة) + DashboardView مطابق للتصميم (1) + Empty-states آمنة لكل جدول فارغ (LoadingOverlay، Refresh، StatusMessage عند الفشل) + 3 Converters جديدة (BoolToVisibility/ActivityKind*/DateToRelativeArabic) + NoWarn NU1701. Build 0/0. |
-| Phase 6 — Students | Pending | - | - | - |
+| Phase 6 — Students | ✅ Completed | 2026-05-15 | 2026-05-15 | StudentsView (تصميم 3) + StudentEditorView (تصميم 4) + StudentsViewModel/StudentEditorViewModel + IStudentsRepository (Search/Filter/Paginate/Stats/Lookups/CreateUpdate transactional/Archive) + IDialogService/DialogService (RTL MessageBox) + IFileService/FileService (Photo picker + copy إلى LocalAppData) + 6 converters جديدة + InverseBoolConverter. Debounce بحث 300ms، Pagination مع NotifyCanExecuteChanged، Status pills ملوّنة، Avatar بالحرف الأول. Build 0/0. |
 | Phase 7 — Classes | Pending | - | - | - |
 | Phase 8 — Attendance | Pending | - | - | - |
 | Phase 9 — Marks & Results | Pending | - | - | - |
@@ -633,6 +645,11 @@
 | 2026-05-15 | تغليف `CartesianChart` و`PieChart` بـ `FlowDirection="LeftToRight"` داخل لوحة Dashboard RTL | محاور SkiaSharp تُرسم بإحداثيات شاشة فعلية؛ تركها في حاوية RTL يقلب اتجاه الزمن على المحور X ويعكس التسميات. الحل النهائي: إبقاء التطبيق كله RTL، وتحويل حاوية الرسم فقط لـ LTR. النصوص العربية فوق الرسم تُغلَّف بـ RTL StackPanel منفصل |
 | 2026-05-15 | `IDashboardService` يُرجع `DashboardSnapshot` واحد بدل سلسلة Calls من الـ ViewModel | تقليل round-trips إلى DbContextFactory، استعلام واحد متماسك يضمن snapshot لحظي متّسق، يبسط معالجة الخطأ في `RefreshCommand` (try واحد) |
 | 2026-05-15 | استخدام Grid عمودَين بدل DockPanel لترويسة DashboardView | في وضع RTL تتعارض دلالات `DockPanel.Dock="Right"` مع `HorizontalAlignment="Left"` فيتجمعان معاً على الجانب البصري نفسه. Grid مع `*` ثم `Auto` يضمن وضوحاً صريحاً: العمود 0 (يميناً في RTL) للعنوان، العمود 1 (يساراً) للزر — قاعدة عامة تنطبق على كل ترويسات الشاشات اللاحقة |
+| 2026-05-15 | إضافة `StudentsRepository` متخصصاً يكمل `IRepository<T>` العام | Phase 6 يحتاج استعلامات Domain-specific (Search متعدد الحقول، Pagination، Stats، Lookups، Editor projection، Transactional Save) لا تُلائم API الـ Generic؛ القرار في Phase 3 كان "نضيف repos متخصصة عند الحاجة" — هذه أول حاجة فعلية. الاثنان يتعايشان |
+| 2026-05-15 | تخزين صور الطلاب خارج مجلد التطبيق في `%LocalAppData%/Nasaq/Photos/Students/{guid}.ext` | تجنّب نسخ الملفات إلى `bin/` وضمان أنها تنجو بين عمليات Rebuild؛ المسار قابل للنسخ الاحتياطي لاحقاً مع DB |
+| 2026-05-15 | الـ Editor يُعرض في نفس الصفحة (CurrentMode في الـ ViewModel) لا في Modal Window | يطابق التصميم 4 (نفس Sidebar/TopBar)، تجربة مستخدم أفضل من Dialogs على شاشة كبيرة، يبقي الـ ViewModels محقونة بـ DI بدون Owner Window |
+| 2026-05-15 | Save لا يستخدم `[RelayCommand(CanExecute=...)]` — يفحص الـ validation داخلياً ويعرض الخطأ كـ ErrorMessage | Validation متعددة الحقول مع رسائل عربية واضحة تتطلب logic أغنى من CanExecute البسيط؛ Banner أحمر يعطي تجربة أوضح من Button معطّل بلا سبب ظاهر |
+| 2026-05-15 | بحث الـ Students مع Debounce يدوي عبر `Task.Delay` + Cancellation داخل setter | تجربة مستخدم لحظية بدون hammer للقاعدة على كل ضغطة مفتاح؛ بدائل (Reactive) تضيف اعتمادية كبيرة بلا داعٍ في WPF |
 | 2026-05-15 | تغليف `CartesianChart` و`PieChart` بـ `FlowDirection="LeftToRight"` رغم أن الواجهة RTL | SkiaSharp يعكس المحور X والـ legends عند `RightToLeft`؛ overlay عربي RTL منفصل يعرض رسائل الـ empty-state دون مسّ بنية الرسم |
 | 2026-05-15 | إخفاء تحذيرات NU1701 عبر `<NoWarn>` في csproj | تبعات SkiaSharp.Views.WPF + OpenTK تُحزَّم لـ net4x لكنها تعمل على net8.0-windows داخل WPF؛ القرار محدود لهذا المشروع للحفاظ على Build 0 Warning |
 | 2026-05-15 | DashboardService يُرجع `record` snapshot واحد بدل عدة Tasks متوازية | استدعاء واحد من الـ ViewModel أبسط للـ Loading/Error handling، ويستخدم سياق DbContext واحد في كل استعلام (وفّرناها كذلك) |
@@ -670,4 +687,4 @@
 6. حدّث القسم 8 و9 بعد كل عمل.
 7. عند الانتهاء من جلسة، اذكر: ما تم، حالة Build، الملفات المهمة، المرحلة التالية.
 
-**الحالة الحالية:** Phase 0/1/2/3/4/5 اكتملت. المرحلة التالية هي **Phase 6 — Students and Guardians** (قائمة الطلاب مطابقة للتصميم 3: بطاقات إحصائية + شريط بحث وفلاتر + DataGrid بأعمدة كاملة، شاشة إضافة/تعديل طالب مطابقة للتصميم 4 بأقسام بيانات الطالب وولي الأمر والعنوان، رفع صورة، أرشفة Soft delete، Pagination). لا تبدأ Phase 6 دون طلب صريح من المستخدم.
+**الحالة الحالية:** Phase 0/1/2/3/4/5/6 اكتملت. المرحلة التالية هي **Phase 7 — Grades and Sections** (شاشة الصفوف والشعب مطابقة للتصميم 5: قائمة صفوف + DataGrid طلاب الشعبة المختارة، إحصائيات أعلى، CRUD للصفوف والشعب، نقل طالب بين الشعب، منع حذف شعبة تحوي طلاباً، التحقق من Capacity). لا تبدأ Phase 7 دون طلب صريح من المستخدم.

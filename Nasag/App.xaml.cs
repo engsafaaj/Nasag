@@ -10,6 +10,7 @@ using Nasag.Repositories;
 using Nasag.Services;
 using Nasag.ViewModels.Auth;
 using Nasag.ViewModels.Pages;
+using Nasag.ViewModels.Pages.Students;
 using Nasag.ViewModels.Shell;
 using Nasag.Views.Auth;
 using Nasag.Views.Shell;
@@ -154,6 +155,7 @@ public partial class App : Application
         services.AddSingleton<IDbSeeder, DbSeeder>();
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         services.AddSingleton(typeof(IRepository<>), typeof(Repository<>));
+        services.AddSingleton<IStudentsRepository, StudentsRepository>();
 
         // Cross-cutting services
         services.AddSingleton<IAppInfoService, AppInfoService>();
@@ -162,6 +164,8 @@ public partial class App : Application
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<ICurrentUserService, CurrentUserService>();
+        services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IDashboardService, DashboardService>();
 
         // Auth
@@ -172,6 +176,7 @@ public partial class App : Application
 
         // Page VMs (singletons so they keep their state during the session)
         services.AddSingleton<DashboardViewModel>();
+        services.AddSingleton<StudentEditorViewModel>();
         services.AddSingleton<StudentsViewModel>();
         services.AddSingleton<ClassesViewModel>();
         services.AddSingleton<AttendanceViewModel>();
