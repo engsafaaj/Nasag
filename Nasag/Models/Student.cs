@@ -12,6 +12,7 @@ public class Student
     public DateTime BirthDate { get; set; }
     public string? NationalId { get; set; }
     public string? PhotoPath { get; set; }
+    public byte[]? PhotoBytes { get; set; }
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public string? Notes { get; set; }

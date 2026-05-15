@@ -125,6 +125,7 @@ public sealed class StudentsRepository : IStudentsRepository
                 s.BirthDate,
                 s.NationalId,
                 s.PhotoPath,
+                s.PhotoBytes,
                 s.Phone,
                 s.Address,
                 s.Notes,
@@ -147,43 +148,51 @@ public sealed class StudentsRepository : IStudentsRepository
     public async Task<int> CreateAsync(StudentSaveModel model, CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-        var guardian = new Guardian
+        // EnableRetryOnFailure requires user-initiated transactions to run inside
+        // the execution strategy so the whole block is retried on transient errors.
+        var strategy = ctx.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            FullName = model.GuardianFullName.Trim(),
-            Relation = model.GuardianRelation,
-            Phone = NullIfEmpty(model.GuardianPhone),
-            AltPhone = NullIfEmpty(model.GuardianAltPhone),
-            Email = NullIfEmpty(model.GuardianEmail),
-            NationalId = NullIfEmpty(model.GuardianNationalId),
-            Occupation = NullIfEmpty(model.GuardianOccupation),
-            Address = NullIfEmpty(model.GuardianAddress),
-        };
-        ctx.Guardians.Add(guardian);
-        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+            await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-        var student = new Student
-        {
-            StudentNumber = model.StudentNumber.Trim(),
-            FullName = model.FullName.Trim(),
-            Gender = model.Gender,
-            BirthDate = model.BirthDate.Date,
-            NationalId = NullIfEmpty(model.NationalId),
-            PhotoPath = NullIfEmpty(model.PhotoPath),
-            Phone = NullIfEmpty(model.Phone),
-            Address = NullIfEmpty(model.Address),
-            Notes = NullIfEmpty(model.Notes),
-            EnrollmentDate = model.EnrollmentDate.Date,
-            Status = StudentStatus.Active,
-            SectionId = model.SectionId,
-            GuardianId = guardian.Id,
-        };
-        ctx.Students.Add(student);
-        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+            var guardian = new Guardian
+            {
+                FullName = model.GuardianFullName.Trim(),
+                Relation = model.GuardianRelation,
+                Phone = NullIfEmpty(model.GuardianPhone),
+                AltPhone = NullIfEmpty(model.GuardianAltPhone),
+                Email = NullIfEmpty(model.GuardianEmail),
+                NationalId = NullIfEmpty(model.GuardianNationalId),
+                Occupation = NullIfEmpty(model.GuardianOccupation),
+                Address = NullIfEmpty(model.GuardianAddress),
+            };
+            ctx.Guardians.Add(guardian);
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        await tx.CommitAsync(ct).ConfigureAwait(false);
-        return student.Id;
+            var student = new Student
+            {
+                StudentNumber = model.StudentNumber.Trim(),
+                FullName = model.FullName.Trim(),
+                Gender = model.Gender,
+                BirthDate = model.BirthDate.Date,
+                NationalId = NullIfEmpty(model.NationalId),
+                PhotoPath = NullIfEmpty(model.PhotoPath),
+                PhotoBytes = model.PhotoBytes,
+                Phone = NullIfEmpty(model.Phone),
+                Address = NullIfEmpty(model.Address),
+                Notes = NullIfEmpty(model.Notes),
+                EnrollmentDate = model.EnrollmentDate.Date,
+                Status = StudentStatus.Active,
+                SectionId = model.SectionId,
+                GuardianId = guardian.Id,
+            };
+            ctx.Students.Add(student);
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+            return student.Id;
+        }).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(StudentSaveModel model, CancellationToken ct = default)
@@ -192,38 +201,45 @@ public sealed class StudentsRepository : IStudentsRepository
             throw new InvalidOperationException("UpdateAsync requires Id.");
 
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-        var student = await ctx.Students
-            .Include(s => s.Guardian)
-            .FirstOrDefaultAsync(s => s.Id == model.Id, ct)
-            .ConfigureAwait(false)
-            ?? throw new InvalidOperationException("الطالب غير موجود.");
+        var strategy = ctx.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-        student.StudentNumber = model.StudentNumber.Trim();
-        student.FullName = model.FullName.Trim();
-        student.Gender = model.Gender;
-        student.BirthDate = model.BirthDate.Date;
-        student.NationalId = NullIfEmpty(model.NationalId);
-        student.PhotoPath = NullIfEmpty(model.PhotoPath);
-        student.Phone = NullIfEmpty(model.Phone);
-        student.Address = NullIfEmpty(model.Address);
-        student.Notes = NullIfEmpty(model.Notes);
-        student.EnrollmentDate = model.EnrollmentDate.Date;
-        student.SectionId = model.SectionId;
+            var student = await ctx.Students
+                .Include(s => s.Guardian)
+                .FirstOrDefaultAsync(s => s.Id == model.Id, ct)
+                .ConfigureAwait(false)
+                ?? throw new InvalidOperationException("الطالب غير موجود.");
 
-        var guardian = student.Guardian;
-        guardian.FullName = model.GuardianFullName.Trim();
-        guardian.Relation = model.GuardianRelation;
-        guardian.Phone = NullIfEmpty(model.GuardianPhone);
-        guardian.AltPhone = NullIfEmpty(model.GuardianAltPhone);
-        guardian.Email = NullIfEmpty(model.GuardianEmail);
-        guardian.NationalId = NullIfEmpty(model.GuardianNationalId);
-        guardian.Occupation = NullIfEmpty(model.GuardianOccupation);
-        guardian.Address = NullIfEmpty(model.GuardianAddress);
+            student.StudentNumber = model.StudentNumber.Trim();
+            student.FullName = model.FullName.Trim();
+            student.Gender = model.Gender;
+            student.BirthDate = model.BirthDate.Date;
+            student.NationalId = NullIfEmpty(model.NationalId);
+            student.PhotoPath = NullIfEmpty(model.PhotoPath);
+            if (model.UpdatePhoto)
+                student.PhotoBytes = model.PhotoBytes;
+            student.Phone = NullIfEmpty(model.Phone);
+            student.Address = NullIfEmpty(model.Address);
+            student.Notes = NullIfEmpty(model.Notes);
+            student.EnrollmentDate = model.EnrollmentDate.Date;
+            student.SectionId = model.SectionId;
 
-        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
-        await tx.CommitAsync(ct).ConfigureAwait(false);
+            var guardian = student.Guardian;
+            guardian.FullName = model.GuardianFullName.Trim();
+            guardian.Relation = model.GuardianRelation;
+            guardian.Phone = NullIfEmpty(model.GuardianPhone);
+            guardian.AltPhone = NullIfEmpty(model.GuardianAltPhone);
+            guardian.Email = NullIfEmpty(model.GuardianEmail);
+            guardian.NationalId = NullIfEmpty(model.GuardianNationalId);
+            guardian.Occupation = NullIfEmpty(model.GuardianOccupation);
+            guardian.Address = NullIfEmpty(model.GuardianAddress);
+
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 
     public async Task SetStatusAsync(int studentId, StudentStatus status, CancellationToken ct = default)

@@ -16,16 +16,23 @@ public sealed partial class StudentEditorViewModel : ObservableObject
 {
     private readonly IStudentsRepository _repo;
     private readonly IFileService _files;
-    private readonly IDialogService _dialogs;
+    private readonly IToastService _toasts;
+    private readonly IErrorReporter _errors;
 
     private int? _editingId;
     private List<SectionOption> _allSections = new();
+    private bool _photoChanged;
 
-    public StudentEditorViewModel(IStudentsRepository repo, IFileService files, IDialogService dialogs)
+    public StudentEditorViewModel(
+        IStudentsRepository repo,
+        IFileService files,
+        IToastService toasts,
+        IErrorReporter errors)
     {
         _repo = repo;
         _files = files;
-        _dialogs = dialogs;
+        _toasts = toasts;
+        _errors = errors;
         Genders = new[]
         {
             new EnumOption<Gender>(Gender.Male, "ذكر"),
@@ -61,8 +68,7 @@ public sealed partial class StudentEditorViewModel : ObservableObject
     [ObservableProperty] private DateTime _birthDate = new DateTime(2015, 1, 1);
     [ObservableProperty] private string? _nationalId;
     [ObservableProperty] private string? _phone;
-    [ObservableProperty] private string? _photoPath;
-    [ObservableProperty] private string? _stagedPhotoSource;
+    [ObservableProperty] private byte[]? _photoBytes;
     [ObservableProperty] private DateTime _enrollmentDate = DateTime.Today;
     [ObservableProperty] private GradeOption? _selectedGrade;
     [ObservableProperty] private SectionOption? _selectedSection;
@@ -82,8 +88,7 @@ public sealed partial class StudentEditorViewModel : ObservableObject
     [ObservableProperty] private string? _notes;
 
     public bool IsEditing => _editingId.HasValue;
-    public string DisplayPhotoPath => StagedPhotoSource ?? PhotoPath ?? string.Empty;
-    public bool HasPhoto => !string.IsNullOrEmpty(DisplayPhotoPath);
+    public bool HasPhoto => PhotoBytes is { Length: > 0 };
 
     public event EventHandler? Saved;
     public event EventHandler? Cancelled;
@@ -118,7 +123,8 @@ public sealed partial class StudentEditorViewModel : ObservableObject
         BirthDate = p.BirthDate == default ? new DateTime(2015, 1, 1) : p.BirthDate;
         NationalId = p.NationalId;
         Phone = p.Phone;
-        PhotoPath = p.PhotoPath;
+        PhotoBytes = p.PhotoBytes;
+        _photoChanged = false;
         EnrollmentDate = p.EnrollmentDate == default ? DateTime.Today : p.EnrollmentDate;
         Address = p.Address;
         Notes = p.Notes;
@@ -162,31 +168,32 @@ public sealed partial class StudentEditorViewModel : ObservableObject
             SelectedSection = AvailableSections.FirstOrDefault();
     }
 
-    partial void OnPhotoPathChanged(string? value)
-    {
-        OnPropertyChanged(nameof(DisplayPhotoPath));
-        OnPropertyChanged(nameof(HasPhoto));
-    }
-
-    partial void OnStagedPhotoSourceChanged(string? value)
-    {
-        OnPropertyChanged(nameof(DisplayPhotoPath));
-        OnPropertyChanged(nameof(HasPhoto));
-    }
+    partial void OnPhotoBytesChanged(byte[]? value)
+        => OnPropertyChanged(nameof(HasPhoto));
 
     [RelayCommand]
-    private void PickPhoto()
+    private async Task PickPhotoAsync()
     {
-        var picked = _files.PickImage();
-        if (!string.IsNullOrEmpty(picked))
-            StagedPhotoSource = picked;
+        try
+        {
+            var picked = _files.PickImage();
+            if (string.IsNullOrEmpty(picked)) return;
+            var bytes = await _files.ReadAllBytesAsync(picked).ConfigureAwait(true);
+            if (bytes is null) return;
+            PhotoBytes = bytes;
+            _photoChanged = true;
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر تحميل الصورة", ex.Message, ex);
+        }
     }
 
     [RelayCommand]
     private void RemovePhoto()
     {
-        StagedPhotoSource = null;
-        PhotoPath = null;
+        PhotoBytes = null;
+        _photoChanged = true;
     }
 
     [RelayCommand]
@@ -207,12 +214,9 @@ public sealed partial class StudentEditorViewModel : ObservableObject
             if (await _repo.StudentNumberExistsAsync(StudentNumber, _editingId, ct).ConfigureAwait(true))
             {
                 ErrorMessage = "رقم الطالب مستخدم مسبقاً، اختر رقماً آخر.";
+                _toasts.Warning("لا يمكن الحفظ", "رقم الطالب مستخدم مسبقاً.");
                 return;
             }
-
-            string? finalPhoto = PhotoPath;
-            if (!string.IsNullOrEmpty(StagedPhotoSource))
-                finalPhoto = await _files.SaveStudentPhotoAsync(StagedPhotoSource).ConfigureAwait(true);
 
             var model = new StudentSaveModel
             {
@@ -223,7 +227,8 @@ public sealed partial class StudentEditorViewModel : ObservableObject
                 BirthDate = BirthDate,
                 NationalId = NationalId,
                 Phone = Phone,
-                PhotoPath = finalPhoto,
+                PhotoBytes = PhotoBytes,
+                UpdatePhoto = _editingId is null || _photoChanged,
                 EnrollmentDate = EnrollmentDate,
                 Address = Address,
                 Notes = Notes,
@@ -239,17 +244,23 @@ public sealed partial class StudentEditorViewModel : ObservableObject
                 GuardianAddress = GuardianAddress,
             };
 
-            if (_editingId is null)
+            var isNew = _editingId is null;
+            if (isNew)
                 await _repo.CreateAsync(model, ct).ConfigureAwait(true);
             else
                 await _repo.UpdateAsync(model, ct).ConfigureAwait(true);
 
+            _toasts.Success(
+                isNew ? "تمت إضافة الطالب" : "تم حفظ التعديلات",
+                FullName);
+
+            _photoChanged = false;
             Saved?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
             ErrorMessage = "تعذّر حفظ الطالب: " + ex.Message;
-            await _dialogs.ShowErrorAsync("خطأ في الحفظ", ex.Message).ConfigureAwait(true);
+            _errors.Report("خطأ في حفظ الطالب", ex.Message, ex);
         }
         finally
         {
@@ -282,8 +293,8 @@ public sealed partial class StudentEditorViewModel : ObservableObject
         BirthDate = new DateTime(2015, 1, 1);
         NationalId = null;
         Phone = null;
-        PhotoPath = null;
-        StagedPhotoSource = null;
+        PhotoBytes = null;
+        _photoChanged = false;
         EnrollmentDate = DateTime.Today;
         SelectedGrade = null;
         SelectedSection = null;

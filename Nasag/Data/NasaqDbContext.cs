@@ -104,6 +104,7 @@ public class NasaqDbContext : DbContext
             e.Property(x => x.FullName).IsRequired().HasMaxLength(120);
             e.Property(x => x.NationalId).HasMaxLength(40);
             e.Property(x => x.PhotoPath).HasMaxLength(260);
+            e.Property(x => x.PhotoBytes).HasColumnType("varbinary(max)");
             e.Property(x => x.Phone).HasMaxLength(30);
             e.Property(x => x.Address).HasMaxLength(260);
             e.Property(x => x.Notes).HasMaxLength(500);

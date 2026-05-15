@@ -157,6 +157,59 @@
 
 ---
 
+## Global System Services (مطلوبة لكل شاشة)
+
+هذه الخدمات تأسست في Phase 6 وأصبحت جزءاً دائماً من البنية. **لا تكتب catch لمنطق العمل بدون استدعائها**:
+
+### `IErrorReporter` (نظام الأخطاء العام)
+- كل `catch (Exception ex)` في ViewModel/Service يجب أن ينتهي بـ `_errors.Report("عنوان عربي", ex.Message, ex);`.
+- لا تستخدم `MessageBox.Show` للأخطاء — استعمل ErrorReporter دائماً (يفتح نافذة `ErrorWindow` مع زر «نسخ كامل التفاصيل» وخلفية حمراء).
+- AppDomain/Dispatcher/TaskScheduler الثلاثة موصولون بالفعل في `App.OnStartup` — لا تفصلهم.
+- لا تُخفِ الخطأ بـ `catch { }` صامت أبداً.
+
+### `IToastService` (إشعارات احترافية)
+- بعد كل عملية ناجحة على قاعدة البيانات: `_toasts.Success("...", "...");`
+- عند رفض تحقّق Validation: `_toasts.Warning("...", "...");`
+- عند بدء عملية طويلة بدون LoadingOverlay: `_toasts.Info("...", "...");`
+- لا تستخدم Toast كبديل عن ErrorReporter للأخطاء التقنية — Toast للأحداث الناعمة، ErrorReporter للأخطاء الفعلية.
+- `ToastHost` موضوع في `MainShellView` فوق منطقة المحتوى تلقائياً — لا تضيفه يدوياً في كل صفحة.
+
+### `IDialogService` (تأكيد/تنبيه RTL)
+- استخدمه لكل عملية حذف/أرشفة/استعادة/إعادة تعيين: `await _dialogs.ConfirmAsync("عنوان", "رسالة")`.
+- لا تنفّذ عملية مدمّرة بدون `Confirm` صريح.
+
+---
+
+## Page Layout Rules (مطلوبة لكل شاشة بيانات)
+
+التخطيط القياسي لأي شاشة قائمة (Students, Classes, Subjects, Marks, Fees, Reports, Users, ...):
+
+1. **لا سكرول على مستوى الصفحة.** كل الصفحة تظهر داخل النافذة بدون `ScrollViewer` خارجي.
+2. **التخطيط الإلزامي بـ Grid عمودي 3 صفوف:**
+   - `Auto`: ترويسة الصفحة (عنوان يميناً + معلومات إجمالية مختصرة) + شريط الأدوات الرئيسي (أزرار «تحديث»، «إضافة …»، «تصدير …») يساراً.
+   - `Auto`: شريط الفلاتر/البحث (Card مع padding مضغوط).
+   - `*`: بطاقة DataGrid تأخذ كل المساحة المتبقية مع pagination footer مدمج.
+3. **DataGrid يحتوي السكرول الداخلي** عبر `ScrollViewer.HorizontalScrollBarVisibility="Auto"` و`ScrollViewer.VerticalScrollBarVisibility="Auto"` + `EnableRowVirtualization="True"` + `EnableColumnVirtualization="True"`.
+4. **Pagination ثابت في أسفل بطاقة الـ DataGrid** بـ `RowDefinition Height="Auto"` خاص به، يحوي:
+   - Label واضح: «الصفحة X من Y — إجمالي N».
+   - زرّا «السابق» و«التالي» مع تعطيل تلقائي عند الحدود (`NotifyCanExecuteChanged`).
+   - (اختياري) أزرار أرقام صفحات مرئية إذا كانت `TotalPages <= 10`.
+5. **لا تضع بطاقات إحصائية كبيرة أعلى الصفحات** — اعرض الأرقام الإجمالية كنص مضغوط داخل ترويسة الصفحة (مثل: "إجمالي: 1,248 • نشطون: 1,220 • مؤرشفون: 28"). لوحة التحكم (Dashboard) فقط هي الاستثناء حيث البطاقات الإحصائية محتوى رئيسي.
+6. **شاشات النماذج (Add/Edit):** زرا «حفظ» و«إلغاء» في **شريط أدوات ثابت أعلى الصفحة** (Card sticky)، وجسم النموذج هو الجزء الوحيد الذي يحتوي ScrollViewer داخلياً. لا تضع أزرار الحفظ في الأسفل بحيث تتطلب التمرير.
+7. كل الأدوات بـ Padding مضغوط (`Padding="14,8"` للأزرار، `Padding="10,2"` للـ TextBox، `Padding="14,10"` لشريط الفلاتر) — التصميم احترافي مدمج لكن بدون تصغير حقيقي للقراءة.
+
+---
+
+## Data Storage Rule (DB-only)
+
+- **كل البيانات بما فيها الصور والملفات تُحفظ في قاعدة البيانات** كأعمدة `varbinary(max)` (مثل `Student.PhotoBytes`). لا توجد ملفات على القرص المحلي.
+- لا تستخدم `LocalAppData`/`Pictures`/`AppContext.BaseDirectory` لتخزين بيانات قابلة للنسخ الاحتياطي.
+- استخدم `IFileService.PickImage()` لاختيار الملف، ثم `IFileService.ReadAllBytesAsync(path)` لتحويله إلى `byte[]` لحفظه في DB.
+- العرض في الواجهة عبر `BytesToImageSourceConverter` (BitmapImage مجمَّد من MemoryStream).
+- لا توجد عمليات حذف ملفات محلية لأنها لا تُكتب أصلاً.
+
+---
+
 ## Async / Background Work Rule
 
 كل عملية قد تستغرق أكثر من ~150ms (أي عملية قاعدة بيانات، اتصال شبكي، قراءة/كتابة ملف، تصدير تقرير، نسخة احتياطية…) **يجب** أن تكون:
@@ -184,6 +237,23 @@
 - لا تستخدم `EnsureCreated()` أبداً — فهي تتجاوز Migrations.
 - كل تغيير على المخطط يمرّ عبر Migration جديد (`dotnet ef migrations add …`) — لا تعديل يدوي على الجداول.
 - لا تحذف Migration بعد نشرها — أنشئ Migration جديد عوضاً عن ذلك.
+
+### Transactions مع EnableRetryOnFailure (مهمّ جداً)
+
+- المشروع يفعّل `EnableRetryOnFailure` لمرونة الشبكة. هذا يمنع `BeginTransactionAsync` المباشر بسبب: «`SqlServerRetryingExecutionStrategy does not support user-initiated transactions`».
+- **القاعدة:** أي عملية تحتاج Transaction يدوي **يجب** أن تُغلَّف داخل ExecutionStrategy:
+
+```csharp
+var strategy = ctx.Database.CreateExecutionStrategy();
+await strategy.ExecuteAsync(async () =>
+{
+    await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+    // ... SaveChangesAsync calls ...
+    await tx.CommitAsync(ct).ConfigureAwait(false);
+});
+```
+
+- إذا كانت العملية SaveChanges واحد فقط، EF Core يدير transaction ضمنياً ولا تحتاج للنمط أعلاه.
 
 ---
 

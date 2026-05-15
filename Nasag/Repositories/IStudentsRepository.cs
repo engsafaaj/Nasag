@@ -65,6 +65,7 @@ public sealed record StudentEditorPayload(
     DateTime BirthDate,
     string? NationalId,
     string? PhotoPath,
+    byte[]? PhotoBytes,
     string? Phone,
     string? Address,
     string? Notes,
@@ -90,6 +91,15 @@ public sealed class StudentSaveModel
     public DateTime BirthDate { get; set; } = new DateTime(2015, 1, 1);
     public string? NationalId { get; set; }
     public string? PhotoPath { get; set; }
+    public byte[]? PhotoBytes { get; set; }
+
+    /// <summary>
+    /// True only when <see cref="PhotoBytes"/> represents a deliberate change
+    /// (new upload or removal). For Update flows, false means "leave the
+    /// existing photo column untouched".
+    /// </summary>
+    public bool UpdatePhoto { get; set; }
+
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public string? Notes { get; set; }

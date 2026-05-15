@@ -184,6 +184,8 @@
             <Grid>
                 <ContentControl Content="{Binding CurrentPage}" />
                 <!-- Reserved: shell-wide loading overlay (P3+ wires it to IBusyService) -->
+                <controls:ToastHost VerticalAlignment="Top" HorizontalAlignment="Left"
+                                    IsHitTestVisible="True" />
             </Grid>
         </DockPanel>
 

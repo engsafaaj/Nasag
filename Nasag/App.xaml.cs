@@ -44,6 +44,24 @@ public partial class App : Application
 
         await Host.StartAsync();
 
+        // Global exception handlers — funnel everything through ErrorReporter.
+        var reporter = GetService<IErrorReporter>();
+        DispatcherUnhandledException += (_, args) =>
+        {
+            reporter.Report("خطأ غير متوقع", args.Exception.Message, args.Exception);
+            args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+                reporter.Report("خطأ غير متوقع", ex.Message, ex);
+        };
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            reporter.Report("خطأ في مهمة خلفية", args.Exception.Message, args.Exception);
+            args.SetObserved();
+        };
+
         // 1) Initialize database (apply pending migrations + seed if empty).
         var initializer = GetService<IDatabaseInitializer>();
         var result = await Task.Run(() => initializer.InitializeAsync()).ConfigureAwait(true);
@@ -167,6 +185,8 @@ public partial class App : Application
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IDashboardService, DashboardService>();
+        services.AddSingleton<IErrorReporter, ErrorReporter>();
+        services.AddSingleton<IToastService, ToastService>();
 
         // Auth
         services.AddTransient<LoginViewModel>();

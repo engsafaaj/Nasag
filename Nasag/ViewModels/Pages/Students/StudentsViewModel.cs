@@ -16,6 +16,8 @@ public sealed partial class StudentsViewModel : PageViewModel
 {
     private readonly IStudentsRepository _repo;
     private readonly IDialogService _dialogs;
+    private readonly IToastService _toasts;
+    private readonly IErrorReporter _errors;
     private readonly StudentEditorViewModel _editor;
 
     private List<SectionOption> _allSections = new();
@@ -24,10 +26,14 @@ public sealed partial class StudentsViewModel : PageViewModel
     public StudentsViewModel(
         IStudentsRepository repo,
         IDialogService dialogs,
+        IToastService toasts,
+        IErrorReporter errors,
         StudentEditorViewModel editor)
     {
         _repo = repo;
         _dialogs = dialogs;
+        _toasts = toasts;
+        _errors = errors;
         _editor = editor;
         _editor.Saved += OnEditorSaved;
         _editor.Cancelled += OnEditorCancelled;
@@ -146,7 +152,8 @@ public sealed partial class StudentsViewModel : PageViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = "تعذّر تحميل الصفوف والشعب: " + ex.Message;
+            StatusMessage = "تعذّر تحميل الصفوف والشعب.";
+            _errors.Report("تعذّر تحميل الصفوف والشعب", ex.Message, ex);
         }
     }
 
@@ -188,7 +195,8 @@ public sealed partial class StudentsViewModel : PageViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = "تعذّر تحميل قائمة الطلاب: " + ex.Message;
+            StatusMessage = "تعذّر تحميل قائمة الطلاب.";
+            _errors.Report("تعذّر تحميل قائمة الطلاب", ex.Message, ex);
         }
         finally
         {
@@ -278,10 +286,11 @@ public sealed partial class StudentsViewModel : PageViewModel
         {
             await _repo.SetStatusAsync(row.Id, StudentStatus.Archived).ConfigureAwait(true);
             await ReloadAsync().ConfigureAwait(true);
+            _toasts.Success("تمت الأرشفة", row.FullName);
         }
         catch (Exception ex)
         {
-            await _dialogs.ShowErrorAsync("تعذّر الأرشفة", ex.Message).ConfigureAwait(true);
+            _errors.Report("تعذّر أرشفة الطالب", ex.Message, ex);
         }
     }
 
@@ -293,10 +302,11 @@ public sealed partial class StudentsViewModel : PageViewModel
         {
             await _repo.SetStatusAsync(row.Id, StudentStatus.Active).ConfigureAwait(true);
             await ReloadAsync().ConfigureAwait(true);
+            _toasts.Success("تمت الاستعادة", row.FullName);
         }
         catch (Exception ex)
         {
-            await _dialogs.ShowErrorAsync("تعذّر استعادة الطالب", ex.Message).ConfigureAwait(true);
+            _errors.Report("تعذّر استعادة الطالب", ex.Message, ex);
         }
     }
 
