@@ -27,7 +27,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,20,0,0">
+    <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,20,0">
         <ItemsControl x:Name="ToastList">
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type svc:ToastItem}">
