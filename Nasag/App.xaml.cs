@@ -10,6 +10,7 @@ using Nasag.Repositories;
 using Nasag.Services;
 using Nasag.ViewModels.Auth;
 using Nasag.ViewModels.Pages;
+using Nasag.ViewModels.Pages.Classes;
 using Nasag.ViewModels.Pages.Students;
 using Nasag.ViewModels.Shell;
 using Nasag.Views.Auth;
@@ -174,6 +175,7 @@ public partial class App : Application
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         services.AddSingleton(typeof(IRepository<>), typeof(Repository<>));
         services.AddSingleton<IStudentsRepository, StudentsRepository>();
+        services.AddSingleton<IClassesRepository, ClassesRepository>();
 
         // Cross-cutting services
         services.AddSingleton<IAppInfoService, AppInfoService>();

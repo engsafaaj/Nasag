@@ -436,17 +436,34 @@
 ---
 
 ### Phase 7 — Grades and Sections
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-16)
 
 **Tasks:**
-- شاشة `الصفوف والشعب` (تصميم 5): قائمة صفوف يساراً، DataGrid طلاب الشعبة المختارة يميناً، إحصائيات أعلى، أزرار إضافة/تعديل/حذف للصفوف والشعب.
-- نقل طالب بين الشعب.
-- منع حذف شعبة بها طلاب.
+- [x] [IClassesRepository](Nasag/Repositories/IClassesRepository.cs) + [ClassesRepository](Nasag/Repositories/ClassesRepository.cs): استعلامات `GetGradesAsync` (صفوف + عدد الشعب + عدد الطلاب النشطين في السنة الحالية)، `GetSectionsForGradeAsync` (شعب الصف مع `StudentCount`/`Capacity`/`Remaining`/`IsOverCapacity`)، `GetStudentsForSectionAsync` (قائمة الطلاب للشعبة المختارة)، `GetStatsAsync` (إجماليات الصفوف/الشعب/الطلاب)، `GetCurrentAcademicYearIdAsync` (من SchoolSettings ثم Active fallback). كل العمليات الكتابية داخل Transaction عبر `CreateExecutionStrategy()`.
+- [x] CRUD الصفوف: `CreateGradeAsync` / `UpdateGradeAsync` / `DeleteGradeAsync` (cascade). الحذف يمسح بترتيب آمن: لكل شعبة → Payments → Installments → StudentFees → Attendance → Marks → Students → Guardians اليتيمى → Section → Subjects + Marks الخاصة بالصف → FeePlans + StudentFees + Installments + Payments المرتبطة → Grade.
+- [x] CRUD الشعب: `CreateSectionAsync` (التحقق من سنة دراسية نشطة + فحص تعارض الاسم لنفس الصف والسنة)، `UpdateSectionAsync` (فحص تعارض)، `DeleteSectionAsync` (cascade الطلاب وكل تبعياتهم).
+- [x] `MoveStudentAsync(studentId, targetSectionId)` يتحقق من السعة المتبقية ويرفض النقل عند الامتلاء برسالة عربية واضحة.
+- [x] `GetMoveTargetsAsync(excludeStudentId)` يُرجع شعب السنة الحالية مع العداد والسعة جاهزة للعرض في `SearchableComboBox`.
+- [x] [ClassesViewModel](Nasag/ViewModels/Pages/Classes/ClassesViewModel.cs) منفصل (يحل محل stub في PageViewModel.cs): حقن `IClassesRepository`/`IDialogService`/`IToastService`/`IErrorReporter`، Init-guard pattern + Reload re-entrance guard، خصائص `Grades`/`Sections`/`StudentsInSection`/`Stats` كـ `ObservableCollection`/`ObservableProperty`، `OnSelectedGradeChanged` يعيد تحميل الشعب، `OnSelectedSectionChanged` يعيد تحميل الطلاب، `SubtitleAr` يُحدَّث ديناميكياً مع الإحصائيات، Commands: `AddGrade/EditGrade/DeleteGrade/AddSection(CanExecute=HasSelectedGrade)/EditSection/DeleteSection/MoveStudent/Reload`.
+- [x] تأكيد حذف مزدوج: ConfirmDestructiveAsync أول للنية، ثم ConfirmDestructiveAsync ثانٍ يعرض عدد الشعب/الطلاب/المواد التي سيتم حذفها (عبر `GetGradeDependencyCountsAsync` / `GetSectionDependencyCountsAsync`).
+- [x] [ClassesView.xaml](Nasag/Views/Pages/Classes/ClassesView.xaml) مطابق للتصميم 5: Header يميناً (FlowDirection Swap Pattern موثَّق في UI Standards) + زر تحديث يساراً، Body Grid عمودين: قائمة صفوف يمين (عرض 300 + Footer بزر BubbleButton لإضافة صف + ListBox مخصص بحدّ علوي تيل عند الاختيار + إجراءات تعديل/حذف لكل صف)، شطر يسار به بطاقتان رأسياً (شعب الصف 280px أسفل من *) و(طلاب الشعبة المختارة).
+- [x] الـ DataGrid للشعب: عمود الشعبة، عدد الطلاب، السعة، المتبقي (يتحول للأحمر عند IsOverCapacity)، إجراءات تعديل/حذف. الـ DataGrid للطلاب: رقم/اسم بـ avatar/حالة Pill ملونة/جوال/زر «نقل» بأيقونة سهم.
+- [x] 3 Dialogs مخصصة بنمط NasaqDialog: [GradeEditorDialog](Nasag/Views/Pages/Classes/Dialogs/GradeEditorDialog.xaml) (الاسم + المرحلة كـ ComboBox + ترتيب العرض)، [SectionEditorDialog](Nasag/Views/Pages/Classes/Dialogs/SectionEditorDialog.xaml) (الاسم + السعة)، [MoveStudentDialog](Nasag/Views/Pages/Classes/Dialogs/MoveStudentDialog.xaml) (SearchableComboBox من `MoveTargetSection` يعرض "الصف — الشعبة (count/capacity)" مع فحص الامتلاء قبل التأكيد).
+- [x] Move action متاح من شاشتين: من `ClassesView` على كل صف في جدول طلاب الشعبة، ومن `StudentsView` كزر صف ثالث في عمود الإجراءات (`StudentsViewModel` يحقن `IClassesRepository` مباشرة لتجنّب الاعتماد على `ClassesViewModel`).
+- [x] [DataTemplates.xaml](Nasag/Themes/DataTemplates.xaml): استبدال PagePlaceholderView لـ ClassesViewModel بـ ClassesView (إضافة namespaces `vmClasses`/`viewsClasses`).
+- [x] [App.xaml.cs](Nasag/App.xaml.cs): تسجيل `IClassesRepository → ClassesRepository` Singleton + ضبط using لـ `Nasag.ViewModels.Pages.Classes`.
+- [x] [NavigationService.cs](Nasag/Services/NavigationService.cs): تحديث using إلى namespace الجديد لـ `ClassesViewModel`.
+- [x] حذف stub `ClassesViewModel` من `ViewModels/Pages/PageViewModel.cs`.
+- [x] اختصارات لوحة المفاتيح: `F5` تحديث، `Ctrl+N` إضافة شعبة (للصف المختار).
 
 **Acceptance Criteria:**
-- إنشاء صف وشعبة جديدين.
-- ربط طلاب موجودين بشعبة.
-- التحقق من السعة (Capacity).
+- [x] إنشاء صف جديد وإضافة شعب له يعمل ضمن السنة الدراسية الحالية.
+- [x] تعديل اسم الصف، المرحلة، أو ترتيبه ينعكس فوراً في القائمة بعد Reload.
+- [x] التحقق من السعة عند نقل الطالب: الشعبة الممتلئة ترفض النقل مع رسالة عربية، وعداد الطلاب/السعة يظهر في كل قائمة هدف.
+- [x] حذف صف بـ cascade: تأكيد مزدوج + إزالة كل الشعب والطلاب والتبعيات في Transaction واحدة. مماثل لحذف شعبة بداخلها طلاب.
+- [x] نقل طالب بين الشعب يعمل من ClassesView ومن StudentsView، وSelectedSection في ClassesView يتحدّث بعد كل عملية.
+- [x] فشل DB يُعرض عبر `IErrorReporter` (ErrorWindow)، الأخطاء المنطقية (validation/سعة ممتلئة) عبر `IDialogService.ShowWarningAsync`.
+- [x] Build: 0 Warning / 0 Error.
 
 ---
 
@@ -595,7 +612,8 @@
 | Phase 6 — Students | ✅ Completed | 2026-05-15 | 2026-05-15 | StudentsView (تصميم 3) + StudentEditorView (تصميم 4) + StudentsViewModel/StudentEditorViewModel + IStudentsRepository (Search/Filter/Paginate/Stats/Lookups/CreateUpdate transactional/Archive) + IDialogService/DialogService (RTL MessageBox) + IFileService/FileService (Photo picker + copy إلى LocalAppData) + 6 converters جديدة + InverseBoolConverter. Debounce بحث 300ms، Pagination مع NotifyCanExecuteChanged، Status pills ملوّنة، Avatar بالحرف الأول. Build 0/0. |
 | Phase 6.1 — Cross-cutting hardening | ✅ Completed | 2026-05-15 | 2026-05-15 | إصلاح خطأ EnableRetryOnFailure مع BeginTransaction (CreateExecutionStrategy.ExecuteAsync) + نقل الصور إلى DB (Student.PhotoBytes varbinary(max) + migration AddStudentPhotoBytes + StudentSaveModel.UpdatePhoto + BytesToImageSourceConverter) + IErrorReporter/ErrorReporter/ErrorWindow (Dispatcher/AppDomain/TaskScheduler hooks، نسخ كامل التفاصيل) + IToastService/ToastService/ToastHost (Success/Error/Warning/Info auto-dismiss 4s) + إعادة تخطيط شاشات الطلاب (no page scroll، DataGrid يحتوي السكرول، pagination ثابت أسفل، action bar للـ Editor ثابت أعلى، إزالة بطاقات stats الكبيرة لصالح سطر مدمج في الترويسة) + AI_INSTRUCTIONS.md محدّث بقواعد UX جديدة. Build 0/0. |
 | Phase 6.2 — UI Standards + Import/Export | ✅ Completed | 2026-05-15 | 2026-05-15 | Remember Me فعّال عبر `IUserPreferencesService` (JSON في LocalAppData) + Toast Notifications منقولة للزاوية اليسرى (FlowDirection LTR منفصل) + `NasaqDialog` بديل احترافي لـ `MessageBox` (Confirm/Destructive/Info/Success/Warning/Error) + `SearchableComboBox` بحث/اقتراحات/مسح + DataGrid theme جديد (Center + Full GridLines) + `BubbleButton` Style كزر CTA + Students Page Redesign كامل (header يمين، إزالة stats، toolbar single-row بـ Bubble Add + 4 SearchableComboBox + Search + Refresh/Clear مختلفان + Export/Import) + خيار «ترتيب أبجدي» في SettingsView يُحفظ في prefs (newest-first fallback) + Pagination ComboBox قابل للكتابة للقفز السريع + Delete row action + Double-click open + Keyboard shortcuts (Ctrl+N, F5, Delete, Ctrl+F, Ctrl+S, Esc) + StudentEditor: Photo dropzone قابل للنقر كاملاً + ClosedXML Excel Service (Export احترافي 20 عمود عربي) + Import Wizard متعدد الخطوات (PickFile → Preview → Mode Append/Replace → Result) + StudentsRepository.DeleteAsync/DeleteAllStudentsAsync/BulkInsertAsync/GetAllForExportAsync/StudentSortMode + توثيق UI Standards كاملاً في AI_INSTRUCTIONS.md. Build 0/0. |
-| Phase 7 — Classes | Pending | - | - | - |
+| Phase 6.3 — Combobox + Photo + Delete polish | ✅ Completed | 2026-05-16 | 2026-05-16 | قالب `ComboBox` كامل جديد في Inputs.xaml (RTL + Placeholder + Chevron + فتح بنقرة واحدة) — Toggle يغطي الحقل كاملاً والنص فوقه `IsHitTestVisible=False`. `SearchableComboBox`: RTL داخل حقل البحث، Commit موثوق عند النقر في أي مكان من العنصر (VisualTreeHelper walk-up)، مزامنة النص بعد إغلاق الـ Popup. StudentEditor: الصورة Overlay خارج قالب الزر — تحديث المصدر فوراً بعد الاختيار. التحقق من إمكانية عرض الصورة قبل قبولها + Toast واضح. حذف الطالب عبر `ExecuteDelete` متدرّج (Payments → Installments → Fees → Attendance → Marks → Student → Guardian اليتيم). إعادة ضبط `IsHitTestVisible` في ToastHost/MainShellView/StudentsView لاستعادة تفاعل الـ FAB. Build 0/0. |
+| Phase 7 — Classes | ✅ Completed | 2026-05-16 | 2026-05-16 | IClassesRepository + ClassesRepository (Grades/Sections/Students lookups + Stats + Move + Cascade Delete) + ClassesViewModel منفصل + ClassesView مطابق للتصميم 5 (قائمة صفوف يمين + Cards يسار: شعب الصف + طلاب الشعبة المختارة) + 3 Dialogs (GradeEditorDialog، SectionEditorDialog، MoveStudentDialog مع SearchableComboBox) + تأكيد حذف مزدوج للـ Cascade + Move action في الشاشتين (ClassesView جدول الطلاب + StudentsView عمود الإجراءات) + Capacity validation + AcademicYear-aware queries. DataTemplates + DI + NavigationService محدَّثون. Build 0/0. |
 | Phase 8 — Attendance | Pending | - | - | - |
 | Phase 9 — Marks & Results | Pending | - | - | - |
 | Phase 10 — Fees | Pending | - | - | - |
@@ -674,6 +692,14 @@
 | 2026-05-15 | Import Wizard كنافذة Modal بأربع خطوات لا كصفحة | متطلب «معالج استيراد متكامل». الـ Modal يحفظ السياق الأم في الذاكرة، الحالة محصورة في الـ Wizard، Confirm Destructive يعيد التحقق قبل تنفيذ "حذف ثم استيراد" |
 | 2026-05-15 | StudentEditor: الصورة في Button Template مخصّص (Full dropzone) | متطلب «إصلاح ميزة رفع الصورة + ظهور المنطقة فارغة وجاهزة». اعتبار 200x200 كاملاً سطحاً قابلاً للنقر يضمن لا توجد حالة "البرنامج لا يفعل شيئاً عند النقر"؛ Hover بحدّ Teal يوضح بصرياً أن المنطقة Clickable |
 | 2026-05-15 | اختصارات لوحة المفاتيح موثَّقة في UI Standards (Ctrl+N/F5/Delete/Ctrl+F للقوائم + Ctrl+S/Esc للنماذج) | متطلب «اختصارات الحفظ والحذف على مستوى النظام». UserControl.InputBindings يحقن الـ KeyBinding مباشرة على الشاشة؛ Ctrl+F يحتاج Focus للـ TextBox لذا يُحقن في code-behind |
+| 2026-05-16 | ComboBox theme: ToggleButton يغطي الحقل كاملاً + طبقة نص فوقه `IsHitTestVisible=False` | النمط الرسمي لـ WPF Aero يضمن أن النقر في أي مكان من الحقل يفتح الـ Popup بنقرة واحدة. وضع ContentPresenter داخل الـ Toggle كان يبتلع النقرات أحياناً ويتطلب نقرتين |
+| 2026-05-16 | BytesToImage يستخدم `BitmapFrame.Create` بدلاً من `BitmapImage` | BitmapFrame أكثر تسامحاً مع ملفات مختلفة الأبعاد/الـ DPI، ويتيح فحص `PixelWidth>0` كاختبار قابلية العرض دون رمي استثناء، فيمكن منع رفع صور تالفة قبل قبولها |
+| 2026-05-16 | حذف الطالب عبر سلسلة `ExecuteDelete` بدلاً من Tracking + SaveChanges | EF cascade FK لا يكفي لأن بعض العلاقات `Restrict` صراحةً (StudentFee→Student، Mark→Subject). Pipeline صريح بالترتيب (Payments → Installments → Fees → Attendance → Marks → Student → Guardian اليتيم) آمن ومستقل عن سلوك FK |
+| 2026-05-16 | حذف الصف بـ Cascade مع تأكيد مزدوج بدلاً من المنع | متطلب المستخدم الصريح. التأكيد الأول للنية، التأكيد الثاني يعرض عدد الشعب/الطلاب/المواد الفعلي قبل التنفيذ ليقلل الأخطاء البشرية. الـ Pipeline يحذف الشعب وكل تبعياتها ثم Subjects وFeePlans والصف نفسه داخل Transaction واحدة |
+| 2026-05-16 | Move-student dialog يستخدم `SearchableComboBox` مع `MoveTargetSection.Display="الصف — الشعبة (count/capacity)"` | تجربة مستخدم أقوى من Dropdown بسيط: المعلم يبحث بالنص ويرى الامتلاء قبل الاختيار. القائمة تستثني الشعبة الحالية للطالب بطبيعتها |
+| 2026-05-16 | Section creation يتطلب `AcademicYear` نشطة من `SchoolSettings.CurrentAcademicYearId` ثم fallback إلى أحدث `IsActive` | المخطط: `Section.AcademicYearId` إلزامي + Unique index على (GradeId, AcademicYearId, NameAr). الـ Lookup المركَّز يضمن أن كل الشعب الجديدة تُلصق بالسنة الصحيحة دون أن نطلب من المستخدم اختيارها يدوياً |
+| 2026-05-16 | StudentsViewModel يحقن `IClassesRepository` مباشرة لإجراء Move-student | تجنّب تبعية دائرية أو حقن ViewModel→ViewModel. الـ Repository واجهة domain خفيفة، والـ ClassesViewModel يستخدمها أيضاً، فلا تكرار في الكود |
+| 2026-05-16 | تخفيف `BubbleButton`: من Pill (`CornerRadius=999`) + Teal glow → زر CTA مدوّر باعتدال (`RadiusMd`=10) بدون ظل | بعد التطبيق على الشاشة الفعلية ظهر أن الـ pill + الظل التوهّجي مبالغ فيهما وسيؤثران على كل الشاشات اللاحقة. القرار: الإبقاء على الاسم لتجنّب breakage في الـ docs/الكود، لكن تطوير المظهر ليتسق مع PrimaryButton مع الحفاظ على لون Teal الكامل كإشارة CTA |
 
 ---
 
@@ -706,4 +732,4 @@
 6. حدّث القسم 8 و9 بعد كل عمل.
 7. عند الانتهاء من جلسة، اذكر: ما تم، حالة Build، الملفات المهمة، المرحلة التالية.
 
-**الحالة الحالية:** Phase 0/1/2/3/4/5/6 اكتملت. المرحلة التالية هي **Phase 7 — Grades and Sections** (شاشة الصفوف والشعب مطابقة للتصميم 5: قائمة صفوف + DataGrid طلاب الشعبة المختارة، إحصائيات أعلى، CRUD للصفوف والشعب، نقل طالب بين الشعب، منع حذف شعبة تحوي طلاباً، التحقق من Capacity). لا تبدأ Phase 7 دون طلب صريح من المستخدم.
+**الحالة الحالية:** Phase 0/1/2/3/4/5/6/7 اكتملت. المرحلة التالية هي **Phase 8 — Attendance** (شاشة الحضور والغياب مطابقة للتصميم 6: اختيار صف/شعبة/تاريخ، بطاقات إحصائية، DataGrid بأعمدة حاضر/غائب/متأخر/إجازة، زر "تحديد الكل حاضر"، حفظ سجلات اليوم، منع تكرار سجل لنفس الطالب في نفس اليوم، إعادة فتح نفس اليوم تُظهر السجلات المحفوظة). لا تبدأ Phase 8 دون طلب صريح من المستخدم.

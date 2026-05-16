@@ -12,6 +12,7 @@ using Nasag.Models;
 using Nasag.Repositories;
 using Nasag.Services;
 using Nasag.Views.Common;
+using Nasag.Views.Pages.Classes.Dialogs;
 using Nasag.Views.Pages.Students;
 
 namespace Nasag.ViewModels.Pages.Students;
@@ -19,6 +20,7 @@ namespace Nasag.ViewModels.Pages.Students;
 public sealed partial class StudentsViewModel : PageViewModel
 {
     private readonly IStudentsRepository _repo;
+    private readonly IClassesRepository _classesRepo;
     private readonly IDialogService _dialogs;
     private readonly IToastService _toasts;
     private readonly IErrorReporter _errors;
@@ -40,6 +42,7 @@ public sealed partial class StudentsViewModel : PageViewModel
 
     public StudentsViewModel(
         IStudentsRepository repo,
+        IClassesRepository classesRepo,
         IDialogService dialogs,
         IToastService toasts,
         IErrorReporter errors,
@@ -49,6 +52,7 @@ public sealed partial class StudentsViewModel : PageViewModel
         StudentImportWizardViewModel importWizard)
     {
         _repo = repo;
+        _classesRepo = classesRepo;
         _dialogs = dialogs;
         _toasts = toasts;
         _errors = errors;
@@ -443,6 +447,41 @@ public sealed partial class StudentsViewModel : PageViewModel
 
     [RelayCommand(CanExecute = nameof(CanActOnSelectedRow))]
     private async Task DeleteSelectedAsync() => await DeleteStudentAsync(SelectedRow).ConfigureAwait(true);
+
+    [RelayCommand]
+    private async Task MoveStudentAsync(StudentRow? row)
+    {
+        if (row is null) return;
+        try
+        {
+            var targets = await _classesRepo.GetMoveTargetsAsync(row.Id).ConfigureAwait(true);
+            // Drop the student's current section from the list.
+            var currentSectionLabel = $"{row.GradeName} — {row.SectionName}";
+            var filtered = targets.Where(t => !(t.GradeName == row.GradeName && t.NameAr == row.SectionName)).ToList();
+            if (filtered.Count == 0)
+            {
+                await _dialogs.ShowWarningAsync(
+                    "لا توجد شعبة أخرى",
+                    "لا توجد شعبة أخرى في السنة الحالية لنقل الطالب إليها.").ConfigureAwait(true);
+                return;
+            }
+
+            var picked = MoveStudentDialog.Show(row.FullName, currentSectionLabel, filtered);
+            if (picked is null) return;
+
+            await _classesRepo.MoveStudentAsync(row.Id, picked.Id).ConfigureAwait(true);
+            _toasts.Success("تم نقل الطالب", $"{row.FullName} → {picked.GradeName} - {picked.NameAr}");
+            await ReloadAsync().ConfigureAwait(true);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await _dialogs.ShowWarningAsync("تعذّر النقل", ex.Message).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر نقل الطالب", ex.Message, ex);
+        }
+    }
 
     [RelayCommand]
     private async Task ExportExcelAsync()

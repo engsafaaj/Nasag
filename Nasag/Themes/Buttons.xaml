@@ -127,21 +127,19 @@
     </Style>
 
     <!--
-        BubbleButton — pill-shaped accent button used for the primary "Add" action
-        in toolbars. Distinct from PrimaryButton: it has a fully rounded (999) corner,
-        a teal gradient face, a soft glow shadow, and a slightly heavier presence so
-        it reads as the *one* call-to-action on a list page.
+        BubbleButton — accent CTA used for primary "Add" actions on list pages.
+        Teal filled face with moderate rounded corners (RadiusMd = 10). No glow
+        shadow — kept flat and clean so it scales across the app without
+        overwhelming surrounding content. For circular floating action buttons
+        anchored bottom-right of a page, use FabButton instead.
     -->
     <ControlTemplate x:Key="BubbleButtonTemplate" TargetType="ButtonBase">
         <Border x:Name="Root"
                 Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}"
                 BorderThickness="{TemplateBinding BorderThickness}"
-                CornerRadius="999"
+                CornerRadius="{StaticResource RadiusMd}"
                 SnapsToDevicePixels="True">
-            <Border.Effect>
-                <DropShadowEffect Color="#1FB5A8" BlurRadius="16" ShadowDepth="0" Opacity="0.45" />
-            </Border.Effect>
             <ContentPresenter HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               Margin="{TemplateBinding Padding}"
@@ -172,9 +170,9 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontFamily" Value="{StaticResource TajawalFont}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBase}" />
-        <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Padding" Value="20,10" />
-        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="MinHeight" Value="36" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template" Value="{StaticResource BubbleButtonTemplate}" />
     </Style>

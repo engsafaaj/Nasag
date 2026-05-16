@@ -350,7 +350,7 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
 
-                            <DataGridTemplateColumn Header="إجراءات" Width="200" CanUserSort="False">
+                            <DataGridTemplateColumn Header="إجراءات" Width="240" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal"
@@ -363,6 +363,20 @@
                                                 <Path Data="{StaticResource IconEdit}"
                                                       Stroke="{StaticResource TextSecondaryBrush}"
                                                       StrokeThickness="1.6"
+                                                      Fill="Transparent"
+                                                      Stretch="Uniform" />
+                                            </Button>
+                                            <Button Style="{StaticResource RowActionButton}"
+                                                    Margin="6,0,0,0"
+                                                    ToolTip="نقل إلى شعبة أخرى"
+                                                    Command="{Binding DataContext.MoveStudentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <Path Data="M3 12 H21 M15 6 L21 12 L15 18"
+                                                      Stroke="{StaticResource InfoBrush}"
+                                                      StrokeThickness="1.6"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"
                                                       Fill="Transparent"
                                                       Stretch="Uniform" />
                                             </Button>

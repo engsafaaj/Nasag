@@ -3,8 +3,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="clr-namespace:Nasag.ViewModels.Pages"
     xmlns:vmStudents="clr-namespace:Nasag.ViewModels.Pages.Students"
+    xmlns:vmClasses="clr-namespace:Nasag.ViewModels.Pages.Classes"
     xmlns:views="clr-namespace:Nasag.Views.Pages"
-    xmlns:viewsStudents="clr-namespace:Nasag.Views.Pages.Students">
+    xmlns:viewsStudents="clr-namespace:Nasag.Views.Pages.Students"
+    xmlns:viewsClasses="clr-namespace:Nasag.Views.Pages.Classes">
 
     <!--
         Each PageViewModel is mapped to a View through an implicit DataTemplate.
@@ -18,8 +20,8 @@
     <DataTemplate DataType="{x:Type vmStudents:StudentsViewModel}">
         <viewsStudents:StudentsView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:ClassesViewModel}">
-        <views:PagePlaceholderView />
+    <DataTemplate DataType="{x:Type vmClasses:ClassesViewModel}">
+        <viewsClasses:ClassesView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:AttendanceViewModel}">
         <views:PagePlaceholderView />
