@@ -524,19 +524,18 @@
             Only visible in List mode (hidden during Editor).
         -->
         <!--
-            The wrapping Grid stretches but doesn't intercept clicks (only the
-            FAB itself does), so the DataGrid/toolbar beneath remain interactive.
+            The wrapping Grid stretches but has no Background → only the Button
+            itself receives clicks; empty Grid area is non-hit-testable.
+            We must NOT set IsHitTestVisible="False" on the Grid — that would
+            propagate down and disable the FAB Button as well.
         -->
         <Grid FlowDirection="LeftToRight"
-              Visibility="{Binding ShowList, Converter={StaticResource BoolToVisibility}}"
-              Background="Transparent"
-              IsHitTestVisible="False">
+              Visibility="{Binding ShowList, Converter={StaticResource BoolToVisibility}}">
             <Button Style="{StaticResource FabButton}"
                     Command="{Binding AddStudentCommand}"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
                     Margin="0,0,28,28"
-                    IsHitTestVisible="True"
                     ToolTip="إضافة طالب (Ctrl+N)">
                 <Path Data="{StaticResource IconAdd}"
                       Stroke="White"

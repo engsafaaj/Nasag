@@ -180,6 +180,11 @@ public sealed partial class StudentEditorViewModel : ObservableObject
             if (string.IsNullOrEmpty(picked)) return;
             var bytes = await _files.ReadAllBytesAsync(picked).ConfigureAwait(true);
             if (bytes is null) return;
+            if (!_files.CanDisplayImage(bytes))
+            {
+                _toasts.Warning("تعذّر عرض الصورة", "اختر صورة بصيغة مدعومة.");
+                return;
+            }
             PhotoBytes = bytes;
             _photoChanged = true;
         }
@@ -312,4 +317,12 @@ public sealed partial class StudentEditorViewModel : ObservableObject
     }
 }
 
-public sealed record EnumOption<T>(T Value, string Label) where T : struct, Enum;
+public sealed record EnumOption<T>(T Value, string Label) where T : struct, Enum
+{
+    // Records auto-generate ToString as "EnumOption { Value = X, Label = Y }".
+    // WPF's ContentPresenter falls back to ToString() when DisplayMemberPath
+    // can't be honored (e.g. ComboBox's SelectionBoxItemTemplate is null
+    // before the popup has ever been opened). Returning Label here guarantees
+    // the user-visible text is always the Arabic label.
+    public override string ToString() => Label;
+}

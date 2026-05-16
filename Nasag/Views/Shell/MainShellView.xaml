@@ -190,8 +190,7 @@
                     independent of the parent's FlowDirection.
                 -->
                 <controls:ToastHost HorizontalAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    IsHitTestVisible="True" />
+                                    VerticalAlignment="Stretch" />
             </Grid>
         </DockPanel>
 

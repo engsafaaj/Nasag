@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -130,15 +131,13 @@ public sealed class BytesToImageSourceConverter : IValueConverter
         if (value is not byte[] bytes || bytes.Length == 0) return null;
         try
         {
-            using var ms = new MemoryStream(bytes);
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
-            image.StreamSource = ms;
-            image.EndInit();
-            image.Freeze();
-            return image;
+            using var ms = new MemoryStream(bytes, writable: false);
+            var frame = BitmapFrame.Create(
+                ms,
+                BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.OnLoad);
+            frame.Freeze();
+            return frame;
         }
         catch
         {
@@ -148,6 +147,40 @@ public sealed class BytesToImageSourceConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
+}
+
+public sealed class ComboBoxDisplayTextConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        var item = values.Length > 0 ? values[0] : null;
+        var displayMemberPath = values.Length > 1 ? values[1] as string : null;
+
+        if (item is null || item == DependencyProperty.UnsetValue)
+            return string.Empty;
+
+        if (item is string text)
+            return text;
+
+        if (!string.IsNullOrWhiteSpace(displayMemberPath))
+        {
+            var display = ReadProperty(item, displayMemberPath);
+            if (!string.IsNullOrEmpty(display))
+                return display;
+        }
+
+        var label = ReadProperty(item, "Label");
+        return !string.IsNullOrEmpty(label) ? label : item.ToString() ?? string.Empty;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+
+    private static string? ReadProperty(object item, string propertyName)
+    {
+        var prop = item.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+        return prop?.GetValue(item)?.ToString();
+    }
 }
 
 public sealed class BytesNotEmptyToBoolConverter : IValueConverter

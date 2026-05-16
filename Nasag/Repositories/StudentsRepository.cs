@@ -229,19 +229,52 @@ public sealed class StudentsRepository : IStudentsRepository
             await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
             var student = await ctx.Students
-                .Include(s => s.Guardian).ThenInclude(g => g.Students)
+                .AsNoTracking()
+                .Select(s => new { s.Id, s.GuardianId })
                 .FirstOrDefaultAsync(s => s.Id == studentId, ct)
                 .ConfigureAwait(false)
                 ?? throw new InvalidOperationException("الطالب غير موجود.");
 
-            // The Student row + cascaded Marks/Attendance/StudentFees go via FK cascade rules.
-            ctx.Students.Remove(student);
+            var guardianStudentCount = await ctx.Students
+                .CountAsync(s => s.GuardianId == student.GuardianId, ct)
+                .ConfigureAwait(false);
 
-            // If this was the guardian's only student, delete the now-orphan guardian too.
-            if (student.Guardian.Students.Count <= 1)
-                ctx.Guardians.Remove(student.Guardian);
+            await ctx.Payments
+                .Where(p => p.StudentFee.StudentId == studentId)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
+            await ctx.Installments
+                .Where(i => i.StudentFee.StudentId == studentId)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
+            await ctx.StudentFees
+                .Where(f => f.StudentId == studentId)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
+            await ctx.AttendanceRecords
+                .Where(a => a.StudentId == studentId)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
+            await ctx.Marks
+                .Where(m => m.StudentId == studentId)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
 
-            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+            var deleted = await ctx.Students
+                .Where(s => s.Id == studentId)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
+
+            if (deleted == 0)
+                throw new InvalidOperationException("Student not found.");
+
+            if (guardianStudentCount <= 1)
+            {
+                await ctx.Guardians
+                    .Where(g => g.Id == student.GuardianId)
+                    .ExecuteDeleteAsync(ct)
+                    .ConfigureAwait(false);
+            }
             await tx.CommitAsync(ct).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }

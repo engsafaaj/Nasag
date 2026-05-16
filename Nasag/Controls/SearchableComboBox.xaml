@@ -13,6 +13,7 @@
             <Setter Property="FontSize" Value="{StaticResource FontSizeBase}" />
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="HorizontalContentAlignment" Value="Right" />
+            <Setter Property="Focusable" Value="False" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -50,18 +51,21 @@
                 Cursor="IBeam">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <TextBox x:Name="QueryBox"
-                         Grid.Column="0"
+                         Grid.Column="2"
                          Background="Transparent"
                          BorderThickness="0"
-                         Padding="10,6"
+                         Padding="10,6,12,6"
                          MinHeight="32"
                          VerticalContentAlignment="Center"
+                         HorizontalContentAlignment="Right"
+                         TextAlignment="Right"
+                         FlowDirection="RightToLeft"
                          Foreground="{StaticResource TextPrimaryBrush}"
                          CaretBrush="{StaticResource TealPrimaryBrush}"
                          TextChanged="OnQueryTextChanged"
@@ -85,7 +89,7 @@
                           Width="10" Height="10" />
                 </Button>
 
-                <Border Grid.Column="2"
+                <Border Grid.Column="0"
                         Width="28"
                         Background="Transparent"
                         Cursor="Hand"
@@ -110,16 +114,19 @@
                    FontSize="{StaticResource FontSizeBase}"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Right"
-                   Margin="12,0,0,0"
+                   FlowDirection="RightToLeft"
+                   TextAlignment="Right"
+                   Margin="36,0,12,0"
                    Text="اختر..." />
 
         <Popup x:Name="DropdownPopup"
-               StaysOpen="False"
+               StaysOpen="True"
                AllowsTransparency="True"
                PopupAnimation="Fade"
                Placement="Bottom"
                PlacementTarget="{Binding ElementName=FieldRoot}"
-               Width="{Binding ElementName=FieldRoot, Path=ActualWidth}">
+               Width="{Binding ElementName=FieldRoot, Path=ActualWidth}"
+               Closed="OnDropdownClosed">
             <Border Background="{StaticResource CardSurfaceBrush}"
                     BorderBrush="{StaticResource BorderStrongBrush}"
                     BorderThickness="1"
@@ -138,6 +145,7 @@
 
                     <ListBox x:Name="SuggestionList"
                              Grid.Row="0"
+                             Focusable="False"
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"

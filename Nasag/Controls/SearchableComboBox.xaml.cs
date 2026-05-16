@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Nasag.Controls;
 
@@ -245,11 +246,15 @@ public partial class SearchableComboBox : UserControl
 
     private void OnSuggestionClicked(object sender, MouseButtonEventArgs e)
     {
-        if (e.OriginalSource is FrameworkElement fe)
+        // Walk up to the ListBoxItem so we commit reliably even when the click
+        // lands on a TextBlock / ContentPresenter / padding inside the row.
+        var src = e.OriginalSource as DependencyObject;
+        while (src is not null && src is not ListBoxItem)
+            src = VisualTreeHelper.GetParent(src);
+        if (src is ListBoxItem lbi && lbi.DataContext is { } item && SuggestionList.Items.Contains(item))
         {
-            var item = fe.DataContext;
-            if (item is not null && SuggestionList.Items.Contains(item))
-                Commit(item);
+            Commit(item);
+            e.Handled = true;
         }
     }
 
@@ -271,6 +276,12 @@ public partial class SearchableComboBox : UserControl
             ApplyFilter(QueryBox.Text);
         }
         e.Handled = true;
+    }
+
+    private void OnDropdownClosed(object? sender, EventArgs e)
+    {
+        if (!IsKeyboardFocusWithin)
+            SyncTextFromSelectedItem();
     }
 
     private void OnKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)

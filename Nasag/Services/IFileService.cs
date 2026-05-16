@@ -10,4 +10,7 @@ public interface IFileService
 
     /// <summary>Reads the file at the given path into memory. Returns null if the path is missing/empty/invalid.</summary>
     Task<byte[]?> ReadAllBytesAsync(string? path);
+
+    /// <summary>Returns true when the selected bytes can be displayed by the application image viewer.</summary>
+    bool CanDisplayImage(byte[]? bytes);
 }

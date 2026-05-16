@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 
 namespace Nasag.Services;
@@ -35,6 +36,24 @@ public sealed class FileService : IFileService
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             return null;
         return await File.ReadAllBytesAsync(path).ConfigureAwait(false);
+    }
+
+    public bool CanDisplayImage(byte[]? bytes)
+    {
+        if (bytes is not { Length: > 0 }) return false;
+        try
+        {
+            using var ms = new MemoryStream(bytes, writable: false);
+            var frame = BitmapFrame.Create(
+                ms,
+                BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.OnLoad);
+            return frame.PixelWidth > 0 && frame.PixelHeight > 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static Window? ResolveActiveOwner()

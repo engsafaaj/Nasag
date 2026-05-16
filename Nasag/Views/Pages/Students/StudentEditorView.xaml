@@ -359,25 +359,31 @@
                                            Style="{StaticResource SubheadTextStyle}"
                                            Margin="0,0,0,12" />
 
-                                <!-- Photo dropzone — clicking anywhere triggers the picker. -->
-                                <Button Command="{Binding PickPhotoCommand}"
-                                        Width="200" Height="200"
-                                        HorizontalAlignment="Center"
-                                        Cursor="Hand"
-                                        ToolTip="انقر لاختيار صورة (PNG / JPG / JPEG / BMP / GIF)">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Root"
-                                                    CornerRadius="14"
-                                                    Background="{StaticResource BackgroundBrush}"
-                                                    BorderBrush="{StaticResource BorderStrongBrush}"
-                                                    BorderThickness="2"
-                                                    SnapsToDevicePixels="True">
-                                                <Grid>
-                                                    <!-- Empty placeholder -->
+                                <!--
+                                    Photo dropzone.
+                                    Layered as: Button (dropzone) under, Image overlay above.
+                                    Putting the Image OUTSIDE the Button's ControlTemplate is
+                                    important: bindings on Image.Source are FrameworkElement
+                                    bindings that reliably inherit DataContext from the
+                                    surrounding visual tree and update immediately after a file
+                                    is selected.
+                                -->
+                                <Grid Width="200" Height="200" HorizontalAlignment="Center">
+                                    <Button Command="{Binding PickPhotoCommand}"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch"
+                                            Cursor="Hand"
+                                            ToolTip="انقر لاختيار صورة (PNG / JPG / JPEG / BMP / GIF)">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Root"
+                                                        CornerRadius="14"
+                                                        Background="{StaticResource BackgroundBrush}"
+                                                        BorderBrush="{StaticResource BorderStrongBrush}"
+                                                        BorderThickness="2"
+                                                        SnapsToDevicePixels="True">
                                                     <StackPanel HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"
-                                                                Visibility="{Binding HasPhoto, Converter={StaticResource InverseBoolToVisibility}}">
+                                                                VerticalAlignment="Center">
                                                         <Border Background="{StaticResource TealSoftBrush}"
                                                                 Width="56" Height="56"
                                                                 CornerRadius="28"
@@ -398,26 +404,30 @@
                                                                    Style="{StaticResource CaptionTextStyle}"
                                                                    HorizontalAlignment="Center" />
                                                     </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource TealPrimaryBrush}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
 
-                                                    <!-- Photo preview -->
-                                                    <Border CornerRadius="12"
-                                                            Margin="2"
-                                                            Visibility="{Binding HasPhoto, Converter={StaticResource BoolToVisibility}}">
-                                                        <Border.Background>
-                                                            <ImageBrush ImageSource="{Binding PhotoBytes, Converter={StaticResource BytesToImage}}"
-                                                                        Stretch="UniformToFill" />
-                                                        </Border.Background>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource TealPrimaryBrush}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
+                                    <!--
+                                        Photo overlay. IsHitTestVisible=False so the click
+                                        passes through to the underlying Button (file picker).
+                                    -->
+                                    <Image Source="{Binding PhotoBytes, Converter={StaticResource BytesToImage}}"
+                                           Margin="2"
+                                           Width="196"
+                                           Height="196"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Stretch="UniformToFill"
+                                           IsHitTestVisible="False"
+                                           Visibility="{Binding HasPhoto, Converter={StaticResource BoolToVisibility}}" />
+                                </Grid>
 
                                 <Button Style="{StaticResource SecondaryButton}"
                                         Command="{Binding PickPhotoCommand}"
