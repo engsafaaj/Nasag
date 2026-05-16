@@ -21,12 +21,6 @@ public abstract partial class PageViewModel : ObservableObject
     public virtual Task ActivateAsync(CancellationToken ct = default) => Task.CompletedTask;
 }
 
-public sealed class AttendanceViewModel : PageViewModel
-{
-    public override string TitleAr => "الحضور والغياب";
-    public override string SubtitleAr => "تسجيل الحضور اليومي للشعب";
-}
-
 public sealed class SubjectsViewModel : PageViewModel
 {
     public override string TitleAr => "المواد والامتحانات";

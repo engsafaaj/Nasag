@@ -468,18 +468,22 @@
 ---
 
 ### Phase 8 — Attendance
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-16)
 
 **Tasks:**
-- شاشة `الحضور والغياب` (تصميم 6): اختيار صف/شعبة/تاريخ، بطاقات إحصائية (حاضر/غائب/متأخر/إجازة)، DataGrid بأعمدة (رقم، اسم، حاضر/غائب/متأخر/إجازة كأزرار راديو، ملاحظات).
-- زر "تحديد الكل حاضر".
-- زر حفظ يحفظ سجلات اليوم.
-- منع تكرار سجل لنفس الطالب في نفس اليوم (Upsert).
+- [x] شاشة `الحضور والغياب` (تصميم 6): اختيار صف/شعبة/تاريخ، بطاقات إحصائية (إجمالي/حاضر/غائب/متأخر/إجازة)، DataGrid بأعمدة (رقم الطالب، اسم الطالب، حاضر/غائب/متأخر/إجازة كأزرار راديو لكل صف، ملاحظات).
+- [x] زر "تحديد الكل حاضر".
+- [x] زر حفظ يحفظ سجلات اليوم.
+- [x] منع تكرار سجل لنفس الطالب في نفس اليوم (Upsert) عبر `AttendanceRepository.SaveAttendanceSheetAsync`.
+- [x] `IAttendanceRepository` + `AttendanceRepository`: Lookups للسنة الدراسية الحالية، تحميل الطلاب النشطين فقط، تحميل السجل المحفوظ لنفس التاريخ، وحفظ Transactional مع `CreateExecutionStrategy()`.
+- [x] `AttendanceViewModel` منفصل في `ViewModels/Pages/Attendance`: Init/reload guards، أوامر Reload/Save/MarkAllPresent، عدادات ديناميكية، Notes بحد 300 حرف، وحالة Dirty.
+- [x] `DataTemplates.xaml` يعرض `AttendanceView` الحقيقي بدلاً من placeholder + تسجيل `IAttendanceRepository` في DI.
 
 **Acceptance Criteria:**
-- تسجيل حضور شعبة كاملة وحفظها.
-- إعادة فتح نفس اليوم تُظهر السجلات المحفوظة.
-- الملخصات تتحدث ديناميكياً.
+- [x] تسجيل حضور شعبة كاملة وحفظها.
+- [x] إعادة فتح نفس اليوم تُظهر السجلات المحفوظة.
+- [x] الملخصات تتحدث ديناميكياً.
+- [x] Build: 0 Warning / 0 Error.
 
 ---
 
@@ -614,7 +618,7 @@
 | Phase 6.2 — UI Standards + Import/Export | ✅ Completed | 2026-05-15 | 2026-05-15 | Remember Me فعّال عبر `IUserPreferencesService` (JSON في LocalAppData) + Toast Notifications منقولة للزاوية اليسرى (FlowDirection LTR منفصل) + `NasaqDialog` بديل احترافي لـ `MessageBox` (Confirm/Destructive/Info/Success/Warning/Error) + `SearchableComboBox` بحث/اقتراحات/مسح + DataGrid theme جديد (Center + Full GridLines) + `BubbleButton` Style كزر CTA + Students Page Redesign كامل (header يمين، إزالة stats، toolbar single-row بـ Bubble Add + 4 SearchableComboBox + Search + Refresh/Clear مختلفان + Export/Import) + خيار «ترتيب أبجدي» في SettingsView يُحفظ في prefs (newest-first fallback) + Pagination ComboBox قابل للكتابة للقفز السريع + Delete row action + Double-click open + Keyboard shortcuts (Ctrl+N, F5, Delete, Ctrl+F, Ctrl+S, Esc) + StudentEditor: Photo dropzone قابل للنقر كاملاً + ClosedXML Excel Service (Export احترافي 20 عمود عربي) + Import Wizard متعدد الخطوات (PickFile → Preview → Mode Append/Replace → Result) + StudentsRepository.DeleteAsync/DeleteAllStudentsAsync/BulkInsertAsync/GetAllForExportAsync/StudentSortMode + توثيق UI Standards كاملاً في AI_INSTRUCTIONS.md. Build 0/0. |
 | Phase 6.3 — Combobox + Photo + Delete polish | ✅ Completed | 2026-05-16 | 2026-05-16 | قالب `ComboBox` كامل جديد في Inputs.xaml (RTL + Placeholder + Chevron + فتح بنقرة واحدة) — Toggle يغطي الحقل كاملاً والنص فوقه `IsHitTestVisible=False`. `SearchableComboBox`: RTL داخل حقل البحث، Commit موثوق عند النقر في أي مكان من العنصر (VisualTreeHelper walk-up)، مزامنة النص بعد إغلاق الـ Popup. StudentEditor: الصورة Overlay خارج قالب الزر — تحديث المصدر فوراً بعد الاختيار. التحقق من إمكانية عرض الصورة قبل قبولها + Toast واضح. حذف الطالب عبر `ExecuteDelete` متدرّج (Payments → Installments → Fees → Attendance → Marks → Student → Guardian اليتيم). إعادة ضبط `IsHitTestVisible` في ToastHost/MainShellView/StudentsView لاستعادة تفاعل الـ FAB. Build 0/0. |
 | Phase 7 — Classes | ✅ Completed | 2026-05-16 | 2026-05-16 | IClassesRepository + ClassesRepository (Grades/Sections/Students lookups + Stats + Move + Cascade Delete) + ClassesViewModel منفصل + ClassesView مطابق للتصميم 5 (قائمة صفوف يمين + Cards يسار: شعب الصف + طلاب الشعبة المختارة) + 3 Dialogs (GradeEditorDialog، SectionEditorDialog، MoveStudentDialog مع SearchableComboBox) + تأكيد حذف مزدوج للـ Cascade + Move action في الشاشتين (ClassesView جدول الطلاب + StudentsView عمود الإجراءات) + Capacity validation + AcademicYear-aware queries. DataTemplates + DI + NavigationService محدَّثون. Build 0/0. |
-| Phase 8 — Attendance | Pending | - | - | - |
+| Phase 8 — Attendance | ✅ Completed | 2026-05-16 | 2026-05-16 | AttendanceRepository + AttendanceViewModel منفصل + AttendanceView مطابق للتصميم 6: اختيار صف/شعبة/تاريخ، بطاقات إجمالي/حاضر/غائب/متأخر/إجازة، DataGrid تحرير مباشر، تحديد الكل حاضر، حفظ Upsert لسجلات اليوم مع Date.Date وطلاب نشطين فقط. Build 0/0. |
 | Phase 9 — Marks & Results | Pending | - | - | - |
 | Phase 10 — Fees | Pending | - | - | - |
 | Phase 11 — Reports | Pending | - | - | - |
@@ -700,6 +704,7 @@
 | 2026-05-16 | Section creation يتطلب `AcademicYear` نشطة من `SchoolSettings.CurrentAcademicYearId` ثم fallback إلى أحدث `IsActive` | المخطط: `Section.AcademicYearId` إلزامي + Unique index على (GradeId, AcademicYearId, NameAr). الـ Lookup المركَّز يضمن أن كل الشعب الجديدة تُلصق بالسنة الصحيحة دون أن نطلب من المستخدم اختيارها يدوياً |
 | 2026-05-16 | StudentsViewModel يحقن `IClassesRepository` مباشرة لإجراء Move-student | تجنّب تبعية دائرية أو حقن ViewModel→ViewModel. الـ Repository واجهة domain خفيفة، والـ ClassesViewModel يستخدمها أيضاً، فلا تكرار في الكود |
 | 2026-05-16 | تخفيف `BubbleButton`: من Pill (`CornerRadius=999`) + Teal glow → زر CTA مدوّر باعتدال (`RadiusMd`=10) بدون ظل | بعد التطبيق على الشاشة الفعلية ظهر أن الـ pill + الظل التوهّجي مبالغ فيهما وسيؤثران على كل الشاشات اللاحقة. القرار: الإبقاء على الاسم لتجنّب breakage في الـ docs/الكود، لكن تطوير المظهر ليتسق مع PrimaryButton مع الحفاظ على لون Teal الكامل كإشارة CTA |
+| 2026-05-16 | حفظ الحضور بـ Upsert على `(StudentId, Date.Date)` مع عرض الطلاب النشطين فقط | فهرس `AttendanceRecords` يمنع التكرار على الطالب/اليوم؛ تطبيع التاريخ إلى Date-only يمنع تكرار نفس اليوم بسبب الوقت، واستبعاد غير النشطين يحافظ على سجل الشعبة اليومي الحقيقي |
 
 ---
 
@@ -732,4 +737,4 @@
 6. حدّث القسم 8 و9 بعد كل عمل.
 7. عند الانتهاء من جلسة، اذكر: ما تم، حالة Build، الملفات المهمة، المرحلة التالية.
 
-**الحالة الحالية:** Phase 0/1/2/3/4/5/6/7 اكتملت. المرحلة التالية هي **Phase 8 — Attendance** (شاشة الحضور والغياب مطابقة للتصميم 6: اختيار صف/شعبة/تاريخ، بطاقات إحصائية، DataGrid بأعمدة حاضر/غائب/متأخر/إجازة، زر "تحديد الكل حاضر"، حفظ سجلات اليوم، منع تكرار سجل لنفس الطالب في نفس اليوم، إعادة فتح نفس اليوم تُظهر السجلات المحفوظة). لا تبدأ Phase 8 دون طلب صريح من المستخدم.
+**الحالة الحالية:** Phase 0/1/2/3/4/5/6/7/8 اكتملت. المرحلة التالية هي **Phase 9 — Subjects, Exams, Marks, Results** (إدارة المواد وأنواع الامتحانات، إدخال الدرجات، نتائج الطلاب). لا تبدأ Phase 9 دون طلب صريح من المستخدم.
