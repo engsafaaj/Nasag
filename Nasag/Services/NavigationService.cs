@@ -5,7 +5,11 @@ using Nasag.ViewModels;
 using Nasag.ViewModels.Pages;
 using Nasag.ViewModels.Pages.Attendance;
 using Nasag.ViewModels.Pages.Classes;
+using Nasag.ViewModels.Pages.Exams;
+using Nasag.ViewModels.Pages.Marks;
+using Nasag.ViewModels.Pages.Results;
 using Nasag.ViewModels.Pages.Students;
+using Nasag.ViewModels.Pages.Subjects;
 
 namespace Nasag.Services;
 
@@ -41,6 +45,7 @@ public sealed class NavigationService : INavigationService
         NavigationSection.Classes => _services.GetRequiredService<ClassesViewModel>(),
         NavigationSection.Attendance => _services.GetRequiredService<AttendanceViewModel>(),
         NavigationSection.Subjects => _services.GetRequiredService<SubjectsViewModel>(),
+        NavigationSection.Exams => _services.GetRequiredService<ExamsViewModel>(),
         NavigationSection.Marks => _services.GetRequiredService<MarksViewModel>(),
         NavigationSection.Results => _services.GetRequiredService<ResultsViewModel>(),
         NavigationSection.Fees => _services.GetRequiredService<FeesViewModel>(),
@@ -57,8 +62,9 @@ public sealed class NavigationService : INavigationService
         new NavigationDescriptor(NavigationSection.Students, "الطلاب", "IconStudents"),
         new NavigationDescriptor(NavigationSection.Classes, "الصفوف والشعب", "IconClasses"),
         new NavigationDescriptor(NavigationSection.Attendance, "الحضور والغياب", "IconAttendance"),
-        new NavigationDescriptor(NavigationSection.Subjects, "المواد والدرجات", "IconSubjects"),
-        new NavigationDescriptor(NavigationSection.Marks, "إدخال الدرجات", "IconSubjects"),
+        new NavigationDescriptor(NavigationSection.Subjects, "المواد الدراسية", "IconSubjects"),
+        new NavigationDescriptor(NavigationSection.Exams, "أنواع الامتحانات", "IconCalendar"),
+        new NavigationDescriptor(NavigationSection.Marks, "إدخال الدرجات", "IconResults"),
         new NavigationDescriptor(NavigationSection.Results, "النتائج", "IconResults"),
         new NavigationDescriptor(NavigationSection.Fees, "الرسوم والأقساط", "IconFees"),
         new NavigationDescriptor(NavigationSection.Reports, "التقارير", "IconReports"),

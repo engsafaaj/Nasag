@@ -21,24 +21,6 @@ public abstract partial class PageViewModel : ObservableObject
     public virtual Task ActivateAsync(CancellationToken ct = default) => Task.CompletedTask;
 }
 
-public sealed class SubjectsViewModel : PageViewModel
-{
-    public override string TitleAr => "المواد والامتحانات";
-    public override string SubtitleAr => "إدارة المواد الدراسية وأنواع الامتحانات";
-}
-
-public sealed class MarksViewModel : PageViewModel
-{
-    public override string TitleAr => "إدخال الدرجات";
-    public override string SubtitleAr => "إدخال درجات الطلاب لكل مادة وامتحان";
-}
-
-public sealed class ResultsViewModel : PageViewModel
-{
-    public override string TitleAr => "نتائج الطلاب";
-    public override string SubtitleAr => "عرض المعدلات والتقديرات ونتائج الطلاب";
-}
-
 public sealed class FeesViewModel : PageViewModel
 {
     public override string TitleAr => "الرسوم والأقساط";

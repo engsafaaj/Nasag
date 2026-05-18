@@ -5,10 +5,18 @@
     xmlns:vmAttendance="clr-namespace:Nasag.ViewModels.Pages.Attendance"
     xmlns:vmStudents="clr-namespace:Nasag.ViewModels.Pages.Students"
     xmlns:vmClasses="clr-namespace:Nasag.ViewModels.Pages.Classes"
+    xmlns:vmSubjects="clr-namespace:Nasag.ViewModels.Pages.Subjects"
+    xmlns:vmExams="clr-namespace:Nasag.ViewModels.Pages.Exams"
+    xmlns:vmMarks="clr-namespace:Nasag.ViewModels.Pages.Marks"
+    xmlns:vmResults="clr-namespace:Nasag.ViewModels.Pages.Results"
     xmlns:views="clr-namespace:Nasag.Views.Pages"
     xmlns:viewsAttendance="clr-namespace:Nasag.Views.Pages.Attendance"
     xmlns:viewsStudents="clr-namespace:Nasag.Views.Pages.Students"
-    xmlns:viewsClasses="clr-namespace:Nasag.Views.Pages.Classes">
+    xmlns:viewsClasses="clr-namespace:Nasag.Views.Pages.Classes"
+    xmlns:viewsSubjects="clr-namespace:Nasag.Views.Pages.Subjects"
+    xmlns:viewsExams="clr-namespace:Nasag.Views.Pages.Exams"
+    xmlns:viewsMarks="clr-namespace:Nasag.Views.Pages.Marks"
+    xmlns:viewsResults="clr-namespace:Nasag.Views.Pages.Results">
 
     <!--
         Each PageViewModel is mapped to a View through an implicit DataTemplate.
@@ -28,14 +36,17 @@
     <DataTemplate DataType="{x:Type vmAttendance:AttendanceViewModel}">
         <viewsAttendance:AttendanceView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:SubjectsViewModel}">
-        <views:PagePlaceholderView />
+    <DataTemplate DataType="{x:Type vmSubjects:SubjectsViewModel}">
+        <viewsSubjects:SubjectsView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:MarksViewModel}">
-        <views:PagePlaceholderView />
+    <DataTemplate DataType="{x:Type vmExams:ExamsViewModel}">
+        <viewsExams:ExamsView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:ResultsViewModel}">
-        <views:PagePlaceholderView />
+    <DataTemplate DataType="{x:Type vmMarks:MarksViewModel}">
+        <viewsMarks:MarksView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vmResults:ResultsViewModel}">
+        <viewsResults:ResultsView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:FeesViewModel}">
         <views:PagePlaceholderView />

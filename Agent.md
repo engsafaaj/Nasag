@@ -488,19 +488,28 @@
 ---
 
 ### Phase 9 — Subjects, Exams, Marks, Results
-**Status:** Pending
+**Status:** ✅ Completed (2026-05-18)
 
 **Tasks:**
-- إدارة المواد (CRUD مرتبط بصف).
-- إدارة أنواع الامتحانات (CRUD + Weight).
-- شاشة `إدخال الدرجات` (تصميم 7): اختيار صف/شعبة/مادة/امتحان، قائمة المواد يساراً، DataGrid طلاب يميناً، عمود الدرجة قابل للتعديل، حفظ سريع.
-- شاشة `نتائج الطلاب` (تصميم 8): فلاتر، بطاقات إحصائية، DataGrid (الاسم، المجموع، المعدل، النتيجة، التقدير).
-- منطق حساب: المجموع، المعدل، النجاح/الرسوب، التقدير (ممتاز/جيد جداً/جيد/مقبول/راسب).
+- [x] شاشة `المواد الدراسية` (CRUD): قائمة + فلتر بالصف + بحث + Dialog إضافة/تعديل (NameAr، Grade، MaxMark، PassMark). الحذف يرفض عند وجود درجات مسجلة.
+- [x] شاشة `أنواع الامتحانات` (CRUD): قائمة + فلتر بالسنة الدراسية + Dialog إضافة/تعديل (NameAr، Year، Weight 0.1-10). يقبل الفاصلة العربية `٫` و `،`. الحذف يرفض عند وجود درجات.
+- [x] شاشة `إدخال الدرجات` (تصميم 7): اختيار صف/شعبة/مادة/امتحان → DataGrid طلاب يحرَّر فيه عمود الدرجة + ملاحظات + Save Transactional (Upsert على الفهرس الفريد StudentId+SubjectId+ExamId)؛ Value=null يحذف الدرجة الموجودة (تمييز «غير ممتحن»). validation: 0 ≤ Value ≤ Subject.MaxMark بـ InvalidOperationException عربي.
+- [x] شاشة `نتائج الطلاب` (تصميم 8): فلاتر صف/شعبة/سنة + 5 بطاقات إحصائية (إجمالي/ناجحون/راسبون/أعلى/أدنى) + DataGrid (StudentNumber، الاسم، Total/MaxTotal، Percentage، Grade pill، Status pill). البحث محلي بـ Debounce 300ms.
+- [x] `IResultsCalculator` (Pure logic، DI Singleton): يحسب المعدل المرجَّح لكل مادة من الامتحانات المُعطاة `weightedSum/weightSum` (ضمناً يستثني الامتحانات الغائبة لتجنّب عقاب الطالب)، النجاح يتطلب نجاحاً في كل المواد بدون أي مادة غير ممتحنة، التقدير: 90+ ممتاز / 80+ جيد جداً / 70+ جيد / 50+ مقبول / دون ذلك راسب.
+- [x] إضافة `NavigationSection.Exams` + عنصر القائمة الجانبية «أنواع الامتحانات» بأيقونة IconCalendar + repointing «إدخال الدرجات» إلى IconResults.
+- [x] DI: `ISubjectsRepository`، `IExamsRepository`، `IMarksRepository`، `IResultsRepository`، `IResultsCalculator` كـ Singletons + `ExamsViewModel` Singleton (الباقي مسجَّل سابقاً كـ stubs).
+- [x] DataTemplates.xaml: ربط Subjects/Exams/Marks/Results بنماذجها الحقيقية (استبدال PagePlaceholderView).
+- [x] حذف stubs المراحل من `ViewModels/Pages/PageViewModel.cs` (SubjectsViewModel/MarksViewModel/ResultsViewModel) — الـ ExamsViewModel كان غير موجود أصلاً وأُنشئ كنوع جديد في namespace `Nasag.ViewModels.Pages.Exams`.
 
 **Acceptance Criteria:**
-- إدخال درجات شعبة كاملة لمادة وامتحان بسرعة.
-- النتائج تُحسب صحيحة وفق Weight.
-- شاشة النتائج تعرض بيانات حقيقية.
+- [x] CRUD المواد يعمل (إضافة/تعديل/حذف) مع منع حذف مادة لها درجات.
+- [x] CRUD الامتحانات يعمل (إضافة/تعديل/حذف) مع منع حذف امتحان له درجات.
+- [x] إدخال درجات شعبة كاملة لمادة وامتحان بسرعة (Save Transactional عبر ExecutionStrategy).
+- [x] إعادة فتح نفس (Section, Subject, Exam) تعرض الدرجات المحفوظة سابقاً.
+- [x] حذف درجة بمسح الـ Value يعمل (لا INSERT صفر).
+- [x] النتائج تُحسب صحيحة وفق Weight: متوسط مرجَّح لكل مادة + Total عبر المواد + Percentage + Grade pill ملوّن.
+- [x] شاشة النتائج تعرض بيانات حقيقية لكل شعبة في سنة محددة.
+- [x] Build: 0 Warning / 0 Error.
 
 ---
 
@@ -619,7 +628,8 @@
 | Phase 6.3 — Combobox + Photo + Delete polish | ✅ Completed | 2026-05-16 | 2026-05-16 | قالب `ComboBox` كامل جديد في Inputs.xaml (RTL + Placeholder + Chevron + فتح بنقرة واحدة) — Toggle يغطي الحقل كاملاً والنص فوقه `IsHitTestVisible=False`. `SearchableComboBox`: RTL داخل حقل البحث، Commit موثوق عند النقر في أي مكان من العنصر (VisualTreeHelper walk-up)، مزامنة النص بعد إغلاق الـ Popup. StudentEditor: الصورة Overlay خارج قالب الزر — تحديث المصدر فوراً بعد الاختيار. التحقق من إمكانية عرض الصورة قبل قبولها + Toast واضح. حذف الطالب عبر `ExecuteDelete` متدرّج (Payments → Installments → Fees → Attendance → Marks → Student → Guardian اليتيم). إعادة ضبط `IsHitTestVisible` في ToastHost/MainShellView/StudentsView لاستعادة تفاعل الـ FAB. Build 0/0. |
 | Phase 7 — Classes | ✅ Completed | 2026-05-16 | 2026-05-16 | IClassesRepository + ClassesRepository (Grades/Sections/Students lookups + Stats + Move + Cascade Delete) + ClassesViewModel منفصل + ClassesView مطابق للتصميم 5 (قائمة صفوف يمين + Cards يسار: شعب الصف + طلاب الشعبة المختارة) + 3 Dialogs (GradeEditorDialog، SectionEditorDialog، MoveStudentDialog مع SearchableComboBox) + تأكيد حذف مزدوج للـ Cascade + Move action في الشاشتين (ClassesView جدول الطلاب + StudentsView عمود الإجراءات) + Capacity validation + AcademicYear-aware queries. DataTemplates + DI + NavigationService محدَّثون. Build 0/0. |
 | Phase 8 — Attendance | ✅ Completed | 2026-05-16 | 2026-05-16 | AttendanceRepository + AttendanceViewModel منفصل + AttendanceView مطابق للتصميم 6: اختيار صف/شعبة/تاريخ، بطاقات إجمالي/حاضر/غائب/متأخر/إجازة، DataGrid تحرير مباشر، تحديد الكل حاضر، حفظ Upsert لسجلات اليوم مع Date.Date وطلاب نشطين فقط. Build 0/0. |
-| Phase 9 — Marks & Results | Pending | - | - | - |
+| Phase 9 — Subjects/Exams/Marks/Results | ✅ Completed | 2026-05-18 | 2026-05-18 | 4 ميزات + Calculator مشترك: (1) Subjects CRUD مع منع حذف عند وجود درجات. (2) Exams CRUD بـ Weight + اختيار السنة الدراسية. (3) Marks Entry sheet (نمط Attendance): اختيار Grade→Section→Subject→Exam → DataGrid قابل للتحرير + Save Transactional عبر ExecutionStrategy (Upsert + حذف عند Value=null) + validation 0..MaxMark. (4) Results view: فلاتر + 5 بطاقات إحصائية + DataGrid بـ Grade pill ملوّن. IResultsCalculator (Pure logic) يحسب المعدل المرجَّح لكل مادة (يستثني الامتحانات الغائبة من weightSum)، Grade: ممتاز/جيد جداً/جيد/مقبول/راسب على النسبة المئوية، النجاح يتطلب لا فشل ولا غياب لأي مادة. إضافة NavigationSection.Exams + عنصر قائمة جانبية + DI لـ 4 Repositories + Calculator. تنفّذ عبر 4 وكلاء بالتوازي + دمج نهائي يدوي. Build 0/0. |
+| Phase 9.1 — Phase 9 Polish | ✅ Completed | 2026-05-18 | 2026-05-18 | دورة مراجعة-إصلاح-تدقيق بـ 10 وكلاء متخصصين بناءً على screenshots من المستخدم. أبرز التحسينات: (1) **Calculator**: إضافة `ResultGrade.Pending` + حقل `ExaminedMax` — الآن النسبة تُحسب على المواد المُمتحَنة فقط (75/100 = 75% بدل 75/600 = 12.5%)، والطلاب الذين امتُحنوا جزئياً يظهرون «غير مكتمل» (Warning soft) بدلاً من «راسب» مزيَّف. حدود التقدير ثوابت `static readonly`. (2) **Results VM/View**: `PendingCount` + بطاقة إحصائية سادسة، Highest/Lowest تستثني Pending، `StatusLabelAr` ثلاثي (ناجح/راسب/غير مكتمل)، Pills تدعم Pending، TotalDisplay يستخدم ExaminedMax + tooltip للمجموع الكلي. (3) **Marks View**: أعمدة Toolbar مرنة (Auto/MinWidth + `*`) — لا قطع لـ «الدراسات الاجتماعية»، ToolTip على الـ ComboBoxes، عمود الملاحظات `2*` بدلاً من `2*` للاسم، DataGrid `KeyboardNavigation.TabNavigation=Continue`، DataTrigger يلوّن خانة الدرجة Danger soft عند `Value < PassMark`، `Visibility` على DataGrid عند `HasRows=False`. (4) **Marks VM**: catch منفصل لـ `InvalidOperationException` كـ Toast Warning، تحذير عند التنقّل بتعديلات غير محفوظة. (5) **Marks Repo**: validation عبر HashSet/distinctIds (بدل المقارنة الخاطئة بالأعداد). (6) **Dialogs**: `FlowDirection=RightToLeft` في ExamEditorDialog، استبدال `ComboBox` بـ `SearchableComboBox` في كلا الـ Editor Dialogs، ترجمة الرسالة الإنجليزية الوحيدة في ExamsRepository. (7) **ExamsView**: زر مسح الفلاتر أصبح أيقونياً (IconFilterClear). (8) **SubjectsViewModel**: نمط `try/finally` للـ init-guard. Build 0/0. تدقيق نهائي مستقل: ✅ جاهز للقبول. |
 | Phase 10 — Fees | Pending | - | - | - |
 | Phase 11 — Reports | Pending | - | - | - |
 | Phase 12 — Settings & Backup | Pending | - | - | - |
@@ -705,6 +715,14 @@
 | 2026-05-16 | StudentsViewModel يحقن `IClassesRepository` مباشرة لإجراء Move-student | تجنّب تبعية دائرية أو حقن ViewModel→ViewModel. الـ Repository واجهة domain خفيفة، والـ ClassesViewModel يستخدمها أيضاً، فلا تكرار في الكود |
 | 2026-05-16 | تخفيف `BubbleButton`: من Pill (`CornerRadius=999`) + Teal glow → زر CTA مدوّر باعتدال (`RadiusMd`=10) بدون ظل | بعد التطبيق على الشاشة الفعلية ظهر أن الـ pill + الظل التوهّجي مبالغ فيهما وسيؤثران على كل الشاشات اللاحقة. القرار: الإبقاء على الاسم لتجنّب breakage في الـ docs/الكود، لكن تطوير المظهر ليتسق مع PrimaryButton مع الحفاظ على لون Teal الكامل كإشارة CTA |
 | 2026-05-16 | حفظ الحضور بـ Upsert على `(StudentId, Date.Date)` مع عرض الطلاب النشطين فقط | فهرس `AttendanceRecords` يمنع التكرار على الطالب/اليوم؛ تطبيع التاريخ إلى Date-only يمنع تكرار نفس اليوم بسبب الوقت، واستبعاد غير النشطين يحافظ على سجل الشعبة اليومي الحقيقي |
+| 2026-05-18 | فصل شاشتي «المواد الدراسية» و«أنواع الامتحانات» إلى عنصرين مستقلين في القائمة الجانبية (لا Tabs) | Subjects تربط بـ Grade (شبه ثابت)، Exams تربط بـ AcademicYear (يتغير سنوياً). توحيدهما في شاشة واحدة سيضيف منطق التبويب وتعقيداً لا داعي له؛ شاشتان مستقلتان تتبعان نفس نمط `ClassesView` تماماً |
+| 2026-05-18 | حذف الدرجة عندما يفرّغ المستخدم الـ Value في شاشة Marks Entry (لا حفظ صفر) | الـ index الفريد على (Student, Subject, Exam) لا يميّز بين «صفر» و «غير ممتحن»؛ التمييز يكون بوجود السجل نفسه أو عدمه. تفريغ الخلية → DELETE، إدخال 0 → INSERT/UPDATE بـ Value=0. هذا يدعم منطق `weightSum==0 → IsAbsent` في الـ Calculator |
+| 2026-05-18 | `IResultsCalculator` كـ Pure logic Singleton منفصل عن Repository | فصل المنطق عن الـ I/O يجعل القاعدة (متوسط مرجَّح + سياسة النجاح + التقدير) قابلة للاختبار وحدوياً وقابلة لإعادة الاستخدام في Reports/Dashboards لاحقاً بدون لمس DB |
+| 2026-05-18 | سياسة النجاح في الـ Calculator: لا نجاح حتى ينجح الطالب في **كل** المواد ولا توجد مادة غير ممتحنة | متطلب الـ Phase 9: «حساب النجاح/الرسوب». الحل البديل (نجاح بمعدل ≥50% فقط) قد يخفي رسوب في مادة جوهرية. السياسة الصارمة تعكس واقع التقييم المدرسي العربي وتُظهر القوائم `FailedSubjects` و `MissingSubjects` بشكل مفيد للمعلم |
+| 2026-05-18 | في حساب درجة المادة: `weightSum` يجمع أوزان الامتحانات الموجودة فقط (لا كل الامتحانات المخطَّطة) | عدم عقاب الطالب على درجة لم تُدخل بعد (مثلاً نهائي قبل موعده). الـ Calculator يميّز بين «صفر فعلي» و«غير ممتحن» — الأخير لا يدخل في الحساب لكنه يقطع شرط النجاح |
+| 2026-05-18 | تنفيذ Phase 9 عبر 4 وكلاء برمجة بالتوازي بعد إعداد `IResultsCalculator` يدوياً | السرعة + استقلالية الميزات: Subjects/Exams/Marks/Results كل منها 4-5 ملفات بأنماط متكررة من Phase 7/8. كل وكيل أُعطي نمطاً مرجعياً صريحاً (`AttendanceRepository.cs`, `ClassesRepository.cs`, `AttendanceViewModel.cs`, `AttendanceView.xaml`, `SectionEditorDialog.xaml`). الدمج النهائي (DI/Navigation/DataTemplates) نُفّذ يدوياً لتجنّب سباق على الملفات المركزية |
+| 2026-05-18 | إضافة `ResultGrade.Pending` + `ExaminedMax` بعد screenshots المستخدم أظهرت كل الطلاب كـ«راسب» بنسبة 9-19% | السياسة الأصلية «النجاح يتطلب إكمال كل المواد» كانت صحيحة منطقياً، لكنّ صياغة «راسب» قبل اكتمال الفصل مضلِّلة بصرياً. الحل: حالة ثالثة Pending تُحفظ النية (الطالب لم يُختبر بعد، ليس راسباً)، والنسبة تُحسب على ExaminedMax (مجموع MaxMark للمواد المُمتحَنة فقط) بدلاً من MaxTotal الكلي. الـ Failed يُحجَز للطلاب الذين رسبوا فعلاً في مادة. الـ MaxTotal يبقى في الـ DTO كـ tooltip للسياق |
+| 2026-05-18 | دورة مراجعة-إصلاح-تدقيق بـ 10 وكلاء (4 تنفيذ + 3 مراجعة + 3 إصلاح + 1 تدقيق نهائي) | بعد screenshots المستخدم، الأنماط المتكررة تبيّن أن Phase 9 يحتوي مشاكل UX/Logic لا تُكتشف بـ Build فقط. المراجعة التعاونية (UX/Logic/Quality) كشفت 35+ ملاحظة موزَّعة بطبقات مختلفة. الإصلاح متوازياً ضمن حدود ملفات متعارضة، ثم تدقيق نهائي مستقل لتجنّب bias. القاعدة الجديدة: لكل Phase بصرية، اطلب screenshots من المستخدم بعد التنفيذ المبدئي وقبل اعتباره مكتملاً |
 
 ---
 

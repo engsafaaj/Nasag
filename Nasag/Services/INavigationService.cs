@@ -10,6 +10,7 @@ public enum NavigationSection
     Classes,
     Attendance,
     Subjects,
+    Exams,
     Marks,
     Results,
     Fees,
