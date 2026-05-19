@@ -350,7 +350,7 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
 
-                            <DataGridTemplateColumn Header="إجراءات" Width="240" CanUserSort="False">
+                            <DataGridTemplateColumn Header="إجراءات" Width="270" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal"
@@ -362,6 +362,18 @@
                                                     CommandParameter="{Binding}">
                                                 <Path Data="{StaticResource IconEdit}"
                                                       Stroke="{StaticResource TextSecondaryBrush}"
+                                                      StrokeThickness="1.6"
+                                                      Fill="Transparent"
+                                                      Stretch="Uniform" />
+                                            </Button>
+                                            <Button Style="{StaticResource RowActionButton}"
+                                                    Margin="6,0,0,0"
+                                                    ToolTip="فتح الرسوم"
+                                                    Visibility="{Binding DataContext.CanManageFees, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}"
+                                                    Command="{Binding DataContext.OpenFeesForStudentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <Path Data="{StaticResource IconFees}"
+                                                      Stroke="{StaticResource TealPrimaryBrush}"
                                                       StrokeThickness="1.6"
                                                       Fill="Transparent"
                                                       Stretch="Uniform" />

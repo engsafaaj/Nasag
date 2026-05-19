@@ -13,6 +13,7 @@ using Nasag.ViewModels.Pages;
 using Nasag.ViewModels.Pages.Attendance;
 using Nasag.ViewModels.Pages.Classes;
 using Nasag.ViewModels.Pages.Exams;
+using Nasag.ViewModels.Pages.Fees;
 using Nasag.ViewModels.Pages.Marks;
 using Nasag.ViewModels.Pages.Results;
 using Nasag.ViewModels.Pages.Students;
@@ -186,6 +187,7 @@ public partial class App : Application
         services.AddSingleton<IExamsRepository, ExamsRepository>();
         services.AddSingleton<IMarksRepository, MarksRepository>();
         services.AddSingleton<IResultsRepository, ResultsRepository>();
+        services.AddSingleton<IFeesRepository, FeesRepository>();
         services.AddSingleton<IResultsCalculator, ResultsCalculator>();
 
         // Cross-cutting services

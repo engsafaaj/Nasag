@@ -45,6 +45,7 @@
     <Geometry x:Key="IconImport">M12 16 V6 M8 12 L12 16 L16 12 M4 20 H20</Geometry>
     <Geometry x:Key="IconCheck">M5 12 L10 17 L20 7</Geometry>
     <Geometry x:Key="IconCamera">M5 7 H8 L10 5 H14 L16 7 H19 V19 H5 Z M12 11 a3 3 0 1 0 0 6 a3 3 0 0 0 0 -6 Z</Geometry>
+    <Geometry x:Key="IconPrint">M6 9 V3 H18 V9 M6 18 H4 V11 H20 V18 H18 M6 14 H18 V21 H6 Z</Geometry>
 
     <!-- Chevrons (used by collapse toggle). In RTL these get visually mirrored automatically. -->
     <Geometry x:Key="IconChevronRight">M9 6 L15 12 L9 18</Geometry>

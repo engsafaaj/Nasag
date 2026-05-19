@@ -9,6 +9,7 @@
     xmlns:vmExams="clr-namespace:Nasag.ViewModels.Pages.Exams"
     xmlns:vmMarks="clr-namespace:Nasag.ViewModels.Pages.Marks"
     xmlns:vmResults="clr-namespace:Nasag.ViewModels.Pages.Results"
+    xmlns:vmFees="clr-namespace:Nasag.ViewModels.Pages.Fees"
     xmlns:views="clr-namespace:Nasag.Views.Pages"
     xmlns:viewsAttendance="clr-namespace:Nasag.Views.Pages.Attendance"
     xmlns:viewsStudents="clr-namespace:Nasag.Views.Pages.Students"
@@ -16,7 +17,8 @@
     xmlns:viewsSubjects="clr-namespace:Nasag.Views.Pages.Subjects"
     xmlns:viewsExams="clr-namespace:Nasag.Views.Pages.Exams"
     xmlns:viewsMarks="clr-namespace:Nasag.Views.Pages.Marks"
-    xmlns:viewsResults="clr-namespace:Nasag.Views.Pages.Results">
+    xmlns:viewsResults="clr-namespace:Nasag.Views.Pages.Results"
+    xmlns:viewsFees="clr-namespace:Nasag.Views.Pages.Fees">
 
     <!--
         Each PageViewModel is mapped to a View through an implicit DataTemplate.
@@ -48,8 +50,8 @@
     <DataTemplate DataType="{x:Type vmResults:ResultsViewModel}">
         <viewsResults:ResultsView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:FeesViewModel}">
-        <views:PagePlaceholderView />
+    <DataTemplate DataType="{x:Type vmFees:FeesViewModel}">
+        <viewsFees:FeesView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReportsViewModel}">
         <views:PagePlaceholderView />

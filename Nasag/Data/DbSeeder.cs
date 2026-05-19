@@ -169,6 +169,10 @@ public sealed class DbSeeder : IDbSeeder
         var rng = new Random(42);
         var studentNumberSeq = 20250001;
 
+        // Track (StudentFee, its Installments) per student so we can layer
+        // demo payments after all rows exist.
+        var seededFees = new List<(StudentFee Fee, List<Installment> Installments)>();
+
         for (var i = 0; i < 30; i++)
         {
             var isMale = i % 2 == 0;
@@ -219,18 +223,109 @@ public sealed class DbSeeder : IDbSeeder
 
             var installmentAmount = Math.Round(plan.TotalAmount / plan.InstallmentsCount, 2);
             var due = new DateTime(2025, 9, 15);
+            var feeInstallments = new List<Installment>();
             for (var n = 1; n <= plan.InstallmentsCount; n++)
             {
-                ctx.Installments.Add(new Installment
+                var inst = new Installment
                 {
                     StudentFeeId = fee.Id,
                     Number = n,
                     Amount = installmentAmount,
                     DueDate = due.AddMonths((n - 1) * 2),
                     Status = InstallmentStatus.Due
-                });
+                };
+                ctx.Installments.Add(inst);
+                feeInstallments.Add(inst);
             }
             await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            seededFees.Add((fee, feeInstallments));
         }
+
+        // 11) Demo payments — pick 10-12 students from the first 30 and add
+        //     1-2 partial payments per student (30-50% of one installment).
+        //     Wrapped in a single ExecutionStrategy-compatible transaction to
+        //     keep payment+installment+fee updates atomic.
+        var paymentRng = new Random(20260519);
+        var receiptCounter = 1;
+        var receiptDate = new DateTime(2025, 10, 1);
+
+        var paymentTargetCount = paymentRng.Next(10, 13); // 10..12
+        var candidateIndexes = Enumerable.Range(0, seededFees.Count)
+            .OrderBy(_ => paymentRng.Next())
+            .Take(paymentTargetCount)
+            .ToList();
+
+        var strategy = ctx.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+            foreach (var idxFee in candidateIndexes)
+            {
+                var (fee, installments) = seededFees[idxFee];
+                if (installments.Count == 0) continue;
+
+                var paymentCount = paymentRng.Next(1, 3); // 1..2
+                for (var k = 0; k < paymentCount; k++)
+                {
+                    // Apply to the earliest still-unfinished installment.
+                    var target = installments.FirstOrDefault(i => i.PaidAmount < i.Amount - 0.01m);
+                    if (target is null) break;
+
+                    var ratio = 0.30 + paymentRng.NextDouble() * 0.20; // 0.30..0.50
+                    var amount = Math.Round(target.Amount * (decimal)ratio, 2);
+                    if (amount <= 0m) continue;
+                    // Never overshoot a single installment in seed data.
+                    var remainingOnInst = target.Amount - target.PaidAmount;
+                    if (amount > remainingOnInst) amount = remainingOnInst;
+
+                    var receipt = new Payment
+                    {
+                        ReceiptNumber = $"REC-{receiptDate:yyyyMMdd}-{receiptCounter:0000}",
+                        Amount = amount,
+                        PaymentDate = receiptDate,
+                        Method = PaymentMethod.Cash,
+                        StudentFeeId = fee.Id,
+                        InstallmentId = target.Id,
+                        UserId = admin.Id,
+                        Notes = "بذرة تجريبية"
+                    };
+                    ctx.Payments.Add(receipt);
+
+                    target.PaidAmount += amount;
+                    fee.PaidAmount += amount;
+
+                    target.Status = target.PaidAmount >= target.Amount - 0.01m
+                        ? InstallmentStatus.Paid
+                        : target.PaidAmount > 0m
+                            ? InstallmentStatus.PartiallyPaid
+                            : InstallmentStatus.Due;
+
+                    receiptCounter++;
+                    receiptDate = receiptDate.AddDays(paymentRng.Next(1, 6));
+                }
+            }
+
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            // 12) Overdue: any past-due installment that hasn't been paid at all.
+            var today = DateTime.Today;
+            foreach (var (_, installments) in seededFees)
+            {
+                foreach (var inst in installments)
+                {
+                    if (inst.Status == InstallmentStatus.Due
+                        && inst.PaidAmount == 0m
+                        && inst.DueDate < today)
+                    {
+                        inst.Status = InstallmentStatus.Overdue;
+                    }
+                }
+            }
+
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 }

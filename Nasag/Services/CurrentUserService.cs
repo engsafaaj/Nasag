@@ -45,4 +45,13 @@ public sealed partial class CurrentUserService : ObservableObject, ICurrentUserS
         OnPropertyChanged(nameof(Initial));
         SignedOut?.Invoke(this, EventArgs.Empty);
     }
+
+    public bool HasPermission(Permission permission)
+    {
+        var role = User?.Role;
+        if (role is null) return false;
+        // None is a no-op; calling HasFlag(None) is always true which is misleading.
+        if (permission == Permission.None) return false;
+        return role.Permissions.HasFlag(permission);
+    }
 }

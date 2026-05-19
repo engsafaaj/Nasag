@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Nasag.Models;
 using Nasag.Services;
 using Nasag.ViewModels.Pages;
 
@@ -56,8 +57,7 @@ public partial class MainShellViewModel : ObservableObject
         _appInfo = appInfo;
         _currentUser = currentUser;
 
-        foreach (var d in _navigation.Descriptors)
-            NavigationItems.Add(new NavigationItem(d, NavigateCommand));
+        RebuildNavigationItems();
 
         _navigation.CurrentChanged += (_, _) => RefreshFromNavigation();
         _connection.StateChanged += (_, _) => SyncConnectionState();
@@ -66,6 +66,32 @@ public partial class MainShellViewModel : ObservableObject
         SyncConnectionState();
 
         _navigation.NavigateTo(NavigationSection.Dashboard);
+    }
+
+    /// <summary>
+    /// Rebuilds the sidebar items so only sections the current user has
+    /// permission for are visible. When no user is signed in, only items
+    /// without a RequiredPermission are shown.
+    /// </summary>
+    private void RebuildNavigationItems()
+    {
+        NavigationItems.Clear();
+        foreach (var d in _navigation.Descriptors)
+        {
+            if (!UserCanAccess(d)) continue;
+            NavigationItems.Add(new NavigationItem(d, NavigateCommand));
+        }
+
+        // Reflect the currently active section on the freshly built items.
+        foreach (var item in NavigationItems)
+            item.IsActive = item.Section == _navigation.Current;
+        ActiveItem = NavigationItems.FirstOrDefault(x => x.IsActive);
+    }
+
+    private bool UserCanAccess(NavigationDescriptor descriptor)
+    {
+        if (descriptor.RequiredPermission is not { } required) return true;
+        return _currentUser.HasPermission(required);
     }
 
     [RelayCommand]
@@ -109,9 +135,17 @@ public partial class MainShellViewModel : ObservableObject
         OnPropertyChanged(nameof(UserInitial));
         OnPropertyChanged(nameof(UserRoleName));
 
+        // Re-filter the sidebar against the new identity (login/logout/role change).
+        RebuildNavigationItems();
+
         // Reset to Dashboard when a new session begins so the shell never reopens deep-linked.
+        // Also redirect when the user no longer has permission for the section they were on.
         if (_currentUser.IsAuthenticated)
-            _navigation.NavigateTo(NavigationSection.Dashboard);
+        {
+            var currentDescriptor = _navigation.Descriptors.FirstOrDefault(d => d.Section == _navigation.Current);
+            if (currentDescriptor is null || !UserCanAccess(currentDescriptor))
+                _navigation.NavigateTo(NavigationSection.Dashboard);
+        }
     }
 
     private void RefreshFromNavigation()

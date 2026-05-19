@@ -6,10 +6,12 @@ using Nasag.ViewModels.Pages;
 using Nasag.ViewModels.Pages.Attendance;
 using Nasag.ViewModels.Pages.Classes;
 using Nasag.ViewModels.Pages.Exams;
+using Nasag.ViewModels.Pages.Fees;
 using Nasag.ViewModels.Pages.Marks;
 using Nasag.ViewModels.Pages.Results;
 using Nasag.ViewModels.Pages.Students;
 using Nasag.ViewModels.Pages.Subjects;
+using Nasag.Models;
 
 namespace Nasag.Services;
 
@@ -66,10 +68,10 @@ public sealed class NavigationService : INavigationService
         new NavigationDescriptor(NavigationSection.Exams, "أنواع الامتحانات", "IconCalendar"),
         new NavigationDescriptor(NavigationSection.Marks, "إدخال الدرجات", "IconResults"),
         new NavigationDescriptor(NavigationSection.Results, "النتائج", "IconResults"),
-        new NavigationDescriptor(NavigationSection.Fees, "الرسوم والأقساط", "IconFees"),
-        new NavigationDescriptor(NavigationSection.Reports, "التقارير", "IconReports"),
-        new NavigationDescriptor(NavigationSection.Users, "المستخدمون", "IconUsers"),
-        new NavigationDescriptor(NavigationSection.Settings, "الإعدادات", "IconSettings"),
-        new NavigationDescriptor(NavigationSection.Backup, "النسخ الاحتياطي", "IconBackup"),
+        new NavigationDescriptor(NavigationSection.Fees, "الرسوم والأقساط", "IconFees", Permission.ManageFees),
+        new NavigationDescriptor(NavigationSection.Reports, "التقارير", "IconReports", Permission.ManageReports),
+        new NavigationDescriptor(NavigationSection.Users, "المستخدمون", "IconUsers", Permission.ManageUsers),
+        new NavigationDescriptor(NavigationSection.Settings, "الإعدادات", "IconSettings", Permission.ManageSettings),
+        new NavigationDescriptor(NavigationSection.Backup, "النسخ الاحتياطي", "IconBackup", Permission.ManageBackup),
     };
 }

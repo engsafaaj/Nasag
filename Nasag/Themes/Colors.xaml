@@ -60,6 +60,9 @@
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}" />
     <SolidColorBrush x:Key="InfoSoftBrush" Color="{StaticResource InfoSoftColor}" />
 
+    <!-- Semi-transparent white overlay (used over disabled grids / behind empty states) -->
+    <SolidColorBrush x:Key="OverlayBrush" Color="#FFFFFF" Opacity="0.67" />
+
     <CornerRadius x:Key="RadiusSm">6</CornerRadius>
     <CornerRadius x:Key="RadiusMd">10</CornerRadius>
     <CornerRadius x:Key="RadiusLg">14</CornerRadius>

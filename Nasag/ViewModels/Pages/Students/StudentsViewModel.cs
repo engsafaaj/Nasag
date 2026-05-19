@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Nasag.Models;
 using Nasag.Repositories;
@@ -28,6 +29,9 @@ public sealed partial class StudentsViewModel : PageViewModel
     private readonly IExcelService _excel;
     private readonly StudentEditorViewModel _editor;
     private readonly StudentImportWizardViewModel _importWizard;
+    private readonly INavigationService _navigation;
+    private readonly IServiceProvider _services;
+    private readonly ICurrentUserService _currentUser;
 
     private List<SectionOption> _allSections = new();
     private CancellationTokenSource? _searchCts;
@@ -49,7 +53,10 @@ public sealed partial class StudentsViewModel : PageViewModel
         IUserPreferencesService prefs,
         IExcelService excel,
         StudentEditorViewModel editor,
-        StudentImportWizardViewModel importWizard)
+        StudentImportWizardViewModel importWizard,
+        INavigationService navigation,
+        IServiceProvider services,
+        ICurrentUserService currentUser)
     {
         _repo = repo;
         _classesRepo = classesRepo;
@@ -60,8 +67,13 @@ public sealed partial class StudentsViewModel : PageViewModel
         _excel = excel;
         _editor = editor;
         _importWizard = importWizard;
+        _navigation = navigation;
+        _services = services;
+        _currentUser = currentUser;
         _editor.Saved += OnEditorSaved;
         _editor.Cancelled += OnEditorCancelled;
+        _currentUser.SignedIn += (_, _) => RefreshPermissions();
+        _currentUser.SignedOut += (_, _) => RefreshPermissions();
 
         StatusOptions = new[]
         {
@@ -76,8 +88,21 @@ public sealed partial class StudentsViewModel : PageViewModel
         // partial OnXxxChanged hooks) don't fire during construction.
         _selectedStatus = StatusOptions[0];
         _pageSize = prefs.Current.StudentsPageSize > 0 ? prefs.Current.StudentsPageSize : 20;
+        _canManageFees = _currentUser.HasPermission(Permission.ManageFees);
 
         _isInitializing = false;
+    }
+
+    /// <summary>
+    /// Visibility flag bound from <c>StudentsView.xaml</c> on the "open fees"
+    /// row-action button. Refreshed on sign-in/out so role changes propagate.
+    /// </summary>
+    [ObservableProperty]
+    private bool _canManageFees;
+
+    private void RefreshPermissions()
+    {
+        CanManageFees = _currentUser.HasPermission(Permission.ManageFees);
     }
 
     public override string TitleAr => "الطلاب";
@@ -545,6 +570,22 @@ public sealed partial class StudentsViewModel : PageViewModel
 
     private void OnEditorCancelled(object? sender, EventArgs e)
         => CurrentMode = StudentsPageMode.List;
+
+    [RelayCommand]
+    private async Task OpenFeesForStudentAsync(StudentRow? row)
+    {
+        if (row is null) return;
+        try
+        {
+            _navigation.NavigateTo(NavigationSection.Fees);
+            var feesVm = _services.GetRequiredService<Nasag.ViewModels.Pages.Fees.FeesViewModel>();
+            await feesVm.PrepareForStudentAsync(row.Id).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذر فتح رسوم الطالب", ex.Message, ex);
+        }
+    }
 }
 
 public enum StudentsPageMode { List, Editor }

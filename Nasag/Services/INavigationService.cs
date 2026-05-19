@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Media;
+using Nasag.Models;
 
 namespace Nasag.Services;
 
@@ -26,11 +27,18 @@ public sealed class NavigationDescriptor
     public string TitleAr { get; }
     public string IconKey { get; }
 
-    public NavigationDescriptor(NavigationSection section, string titleAr, string iconKey)
+    /// <summary>
+    /// Permission required to see and access this navigation section in the sidebar.
+    /// Null means the section is available to every authenticated user.
+    /// </summary>
+    public Permission? RequiredPermission { get; }
+
+    public NavigationDescriptor(NavigationSection section, string titleAr, string iconKey, Permission? requiredPermission = null)
     {
         Section = section;
         TitleAr = titleAr;
         IconKey = iconKey;
+        RequiredPermission = requiredPermission;
     }
 }
 

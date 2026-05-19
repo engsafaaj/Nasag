@@ -19,4 +19,10 @@ public interface ICurrentUserService
 
     void SignIn(User user);
     void SignOut();
+
+    /// <summary>
+    /// Returns true when the signed-in user's role contains the requested permission flag.
+    /// Returns false when no user is signed in or the role has no permissions.
+    /// </summary>
+    bool HasPermission(Permission permission);
 }

@@ -21,12 +21,6 @@ public abstract partial class PageViewModel : ObservableObject
     public virtual Task ActivateAsync(CancellationToken ct = default) => Task.CompletedTask;
 }
 
-public sealed class FeesViewModel : PageViewModel
-{
-    public override string TitleAr => "الرسوم والأقساط";
-    public override string SubtitleAr => "إدارة رسوم الطلاب والأقساط وتسجيل الدفعات";
-}
-
 public sealed class ReportsViewModel : PageViewModel
 {
     public override string TitleAr => "مركز التقارير";
