@@ -15,9 +15,11 @@ using Nasag.ViewModels.Pages.Classes;
 using Nasag.ViewModels.Pages.Exams;
 using Nasag.ViewModels.Pages.Fees;
 using Nasag.ViewModels.Pages.Marks;
+using Nasag.ViewModels.Pages.Reports;
 using Nasag.ViewModels.Pages.Results;
 using Nasag.ViewModels.Pages.Students;
 using Nasag.ViewModels.Pages.Subjects;
+using Nasag.Services.Reports;
 using Nasag.ViewModels.Shell;
 using Nasag.Views.Auth;
 using Nasag.Views.Shell;
@@ -188,7 +190,9 @@ public partial class App : Application
         services.AddSingleton<IMarksRepository, MarksRepository>();
         services.AddSingleton<IResultsRepository, ResultsRepository>();
         services.AddSingleton<IFeesRepository, FeesRepository>();
+        services.AddSingleton<IReportsRepository, ReportsRepository>();
         services.AddSingleton<IResultsCalculator, ResultsCalculator>();
+        services.AddSingleton<IReportPdfService, ReportPdfService>();
 
         // Cross-cutting services
         services.AddSingleton<IAppInfoService, AppInfoService>();
@@ -224,6 +228,10 @@ public partial class App : Application
         services.AddSingleton<ResultsViewModel>();
         services.AddSingleton<FeesViewModel>();
         services.AddSingleton<ReportsViewModel>();
+        services.AddTransient<StudentsReportViewModel>();
+        services.AddTransient<AttendanceReportViewModel>();
+        services.AddTransient<MarksReportViewModel>();
+        services.AddTransient<FeesReportViewModel>();
         services.AddSingleton<UsersViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<BackupViewModel>();

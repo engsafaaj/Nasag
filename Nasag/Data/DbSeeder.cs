@@ -327,5 +327,128 @@ public sealed class DbSeeder : IDbSeeder
             await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
             await tx.CommitAsync(ct).ConfigureAwait(false);
         }).ConfigureAwait(false);
+
+        // 13) Attendance — last 30 weekdays (Sun..Thu) per Active student.
+        //     Deterministic via per-student Random(student.Id).
+        if (!await ctx.AttendanceRecords.AnyAsync(ct).ConfigureAwait(false))
+        {
+            // Build a list of the last 30 school weekdays ending today.
+            var schoolDays = new List<DateTime>(30);
+            var cursor = DateTime.Today;
+            while (schoolDays.Count < 30)
+            {
+                var dow = cursor.DayOfWeek;
+                // Skip Friday & Saturday (Arabic school week is Sun..Thu).
+                if (dow != DayOfWeek.Friday && dow != DayOfWeek.Saturday)
+                    schoolDays.Add(cursor.Date);
+                cursor = cursor.AddDays(-1);
+            }
+            schoolDays.Reverse(); // chronological
+
+            var activeStudents = await ctx.Students
+                .Where(s => s.Status == StudentStatus.Active)
+                .ToListAsync(ct).ConfigureAwait(false);
+
+            var attendanceRows = new List<AttendanceRecord>(activeStudents.Count * schoolDays.Count);
+            foreach (var s in activeStudents)
+            {
+                var attRng = new Random(s.Id); // deterministic per-student seed
+                foreach (var d in schoolDays)
+                {
+                    var roll = attRng.Next(0, 100); // 0..99
+                    AttendanceStatus status;
+                    if (roll < 90) status = AttendanceStatus.Present;       // ~90%
+                    else if (roll < 95) status = AttendanceStatus.Absent;   // ~5%
+                    else if (roll < 98) status = AttendanceStatus.Late;     // ~3%
+                    else status = AttendanceStatus.Excused;                 // ~2%
+
+                    attendanceRows.Add(new AttendanceRecord
+                    {
+                        StudentId = s.Id,
+                        Date = d,
+                        Status = status
+                    });
+                }
+            }
+
+            await ctx.AttendanceRecords.AddRangeAsync(attendanceRows, ct).ConfigureAwait(false);
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
+        // 14) Marks — every Active student × each Subject in their grade × each Exam.
+        //     Deterministic via Random(student.Id * 100003 + subject.Id * 97 + exam.Id).
+        if (!await ctx.Marks.AnyAsync(ct).ConfigureAwait(false))
+        {
+            var activeStudents = await ctx.Students
+                .Where(s => s.Status == StudentStatus.Active)
+                .Include(s => s.Section)
+                .ToListAsync(ct).ConfigureAwait(false);
+
+            var allSubjects = await ctx.Subjects.ToListAsync(ct).ConfigureAwait(false);
+            var subjectsByGrade = allSubjects.GroupBy(x => x.GradeId)
+                                             .ToDictionary(g => g.Key, g => g.ToList());
+
+            var allExams = await ctx.Exams.ToListAsync(ct).ConfigureAwait(false);
+
+            var markRows = new List<Mark>(activeStudents.Count * 6 * allExams.Count);
+            foreach (var s in activeStudents)
+            {
+                if (!subjectsByGrade.TryGetValue(s.Section.GradeId, out var subjList))
+                    continue;
+
+                foreach (var subj in subjList)
+                {
+                    foreach (var ex in allExams)
+                    {
+                        var mRng = new Random(unchecked(s.Id * 100003 + subj.Id * 97 + ex.Id));
+
+                        // ~5% missing -> leave the mark unwritten.
+                        if (mRng.Next(0, 100) < 5) continue;
+
+                        var bucket = mRng.Next(0, 100);
+                        decimal value;
+                        var max = subj.MaxMark;
+                        var pass = subj.PassMark;
+
+                        if (bucket < 5)
+                        {
+                            // ~5% fail: [0, pass)
+                            var range = (double)pass;
+                            value = (decimal)Math.Round(mRng.NextDouble() * Math.Max(range - 1, 0), 2);
+                        }
+                        else if (bucket < 20)
+                        {
+                            // ~15% high pass: [75% of max, max]
+                            var lo = (double)max * 0.75;
+                            var hi = (double)max;
+                            value = (decimal)Math.Round(lo + mRng.NextDouble() * (hi - lo), 2);
+                        }
+                        else
+                        {
+                            // ~80% normal pass: [pass, 75% of max)
+                            var lo = (double)pass;
+                            var hi = (double)max * 0.75;
+                            if (hi <= lo) hi = lo + 1;
+                            value = (decimal)Math.Round(lo + mRng.NextDouble() * (hi - lo), 2);
+                        }
+
+                        if (value < 0m) value = 0m;
+                        if (value > max) value = max;
+
+                        markRows.Add(new Mark
+                        {
+                            StudentId = s.Id,
+                            SubjectId = subj.Id,
+                            ExamId = ex.Id,
+                            Value = value,
+                            UpdatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+            }
+
+            await ctx.Marks.AddRangeAsync(markRows, ct).ConfigureAwait(false);
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
     }
 }

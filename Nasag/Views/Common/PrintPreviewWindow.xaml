@@ -71,9 +71,15 @@
                     Padding="0"
                     CornerRadius="0,0,14,14"
                     Background="#F8FAFC">
-                <DocumentViewer x:Name="Viewer"
-                                FlowDirection="LeftToRight"
-                                Background="#F8FAFC" />
+                <FlowDocumentReader x:Name="Viewer"
+                                    FlowDirection="LeftToRight"
+                                    Background="#F8FAFC"
+                                    ViewingMode="Page"
+                                    IsFindEnabled="False"
+                                    IsPrintEnabled="False"
+                                    IsPageViewEnabled="True"
+                                    IsTwoPageViewEnabled="True"
+                                    IsScrollViewEnabled="True" />
             </Border>
         </Grid>
     </Border>

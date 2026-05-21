@@ -65,4 +65,18 @@ public interface IExcelService
 
     /// <summary>Writes a blank import template (.xlsx) with the canonical Arabic headers.</summary>
     Task WriteTemplateAsync(string filePath, CancellationToken ct = default);
+
+    // ---------- Phase 11: Reports exports ----------
+
+    /// <summary>Writes a styled students report (filtered list) to .xlsx.</summary>
+    Task ExportStudentsReportAsync(string filePath, Nasag.Repositories.StudentsReportResult result, CancellationToken ct = default);
+
+    /// <summary>Writes a styled attendance period report to .xlsx (one row per student with P/A/L/E counts + %).</summary>
+    Task ExportAttendanceReportAsync(string filePath, Nasag.Repositories.AttendanceReportResult result, CancellationToken ct = default);
+
+    /// <summary>Writes a styled marks/results report to .xlsx (dynamic subject columns + totals + grade).</summary>
+    Task ExportMarksReportAsync(string filePath, Nasag.Repositories.MarksReportResult result, CancellationToken ct = default);
+
+    /// <summary>Writes a styled fees summary report to .xlsx (per-student total/paid/remaining/overdue/status).</summary>
+    Task ExportFeesReportAsync(string filePath, Nasag.Repositories.FeesReportResult result, CancellationToken ct = default);
 }

@@ -8,6 +8,7 @@ using Nasag.ViewModels.Pages.Classes;
 using Nasag.ViewModels.Pages.Exams;
 using Nasag.ViewModels.Pages.Fees;
 using Nasag.ViewModels.Pages.Marks;
+using Nasag.ViewModels.Pages.Reports;
 using Nasag.ViewModels.Pages.Results;
 using Nasag.ViewModels.Pages.Students;
 using Nasag.ViewModels.Pages.Subjects;
