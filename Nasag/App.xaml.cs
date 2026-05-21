@@ -19,6 +19,9 @@ using Nasag.ViewModels.Pages.Reports;
 using Nasag.ViewModels.Pages.Results;
 using Nasag.ViewModels.Pages.Students;
 using Nasag.ViewModels.Pages.Subjects;
+using Nasag.ViewModels.Pages.Settings;
+using Nasag.ViewModels.Pages.Users;
+using Nasag.ViewModels.Pages.Backup;
 using Nasag.Services.Reports;
 using Nasag.ViewModels.Shell;
 using Nasag.Views.Auth;
@@ -193,6 +196,10 @@ public partial class App : Application
         services.AddSingleton<IReportsRepository, ReportsRepository>();
         services.AddSingleton<IResultsCalculator, ResultsCalculator>();
         services.AddSingleton<IReportPdfService, ReportPdfService>();
+        services.AddSingleton<ISettingsRepository, SettingsRepository>();
+        services.AddSingleton<IUsersRepository, UsersRepository>();
+        services.AddSingleton<IBackupsRepository, BackupsRepository>();
+        services.AddSingleton<IBackupService, BackupService>();
 
         // Cross-cutting services
         services.AddSingleton<IAppInfoService, AppInfoService>();
@@ -233,7 +240,12 @@ public partial class App : Application
         services.AddTransient<MarksReportViewModel>();
         services.AddTransient<FeesReportViewModel>();
         services.AddSingleton<UsersViewModel>();
+        services.AddTransient<Nasag.ViewModels.Pages.Users.UserEditorDialogViewModel>();
+        services.AddTransient<Nasag.ViewModels.Pages.Users.PasswordResetDialogViewModel>();
+        services.AddTransient<Nasag.ViewModels.Pages.Users.RoleEditorDialogViewModel>();
         services.AddSingleton<SettingsViewModel>();
+        services.AddTransient<Nasag.ViewModels.Pages.Settings.AcademicYearDialogViewModel>();
         services.AddSingleton<BackupViewModel>();
+        services.AddTransient<Nasag.ViewModels.Pages.Backup.BackupNotesDialogViewModel>();
     }
 }

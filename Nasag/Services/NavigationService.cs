@@ -12,6 +12,9 @@ using Nasag.ViewModels.Pages.Reports;
 using Nasag.ViewModels.Pages.Results;
 using Nasag.ViewModels.Pages.Students;
 using Nasag.ViewModels.Pages.Subjects;
+using Nasag.ViewModels.Pages.Settings;
+using Nasag.ViewModels.Pages.Users;
+using Nasag.ViewModels.Pages.Backup;
 using Nasag.Models;
 
 namespace Nasag.Services;

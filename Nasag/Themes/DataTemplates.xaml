@@ -12,6 +12,12 @@
     xmlns:vmFees="clr-namespace:Nasag.ViewModels.Pages.Fees"
     xmlns:reportsVm="clr-namespace:Nasag.ViewModels.Pages.Reports"
     xmlns:reportsViews="clr-namespace:Nasag.Views.Pages.Reports"
+    xmlns:vmSettings="clr-namespace:Nasag.ViewModels.Pages.Settings"
+    xmlns:viewsSettings="clr-namespace:Nasag.Views.Pages.Settings"
+    xmlns:vmUsers="clr-namespace:Nasag.ViewModels.Pages.Users"
+    xmlns:viewsUsers="clr-namespace:Nasag.Views.Pages.Users"
+    xmlns:vmBackup="clr-namespace:Nasag.ViewModels.Pages.Backup"
+    xmlns:viewsBackup="clr-namespace:Nasag.Views.Pages.Backup"
     xmlns:views="clr-namespace:Nasag.Views.Pages"
     xmlns:viewsAttendance="clr-namespace:Nasag.Views.Pages.Attendance"
     xmlns:viewsStudents="clr-namespace:Nasag.Views.Pages.Students"
@@ -58,14 +64,14 @@
     <DataTemplate DataType="{x:Type reportsVm:ReportsViewModel}">
         <reportsViews:ReportsView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:UsersViewModel}">
-        <views:PagePlaceholderView />
+    <DataTemplate DataType="{x:Type vmUsers:UsersViewModel}">
+        <viewsUsers:UsersView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
-        <views:SettingsView />
+    <DataTemplate DataType="{x:Type vmSettings:SettingsViewModel}">
+        <viewsSettings:SettingsView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:BackupViewModel}">
-        <views:PagePlaceholderView />
+    <DataTemplate DataType="{x:Type vmBackup:BackupViewModel}">
+        <viewsBackup:BackupView />
     </DataTemplate>
 
 </ResourceDictionary>

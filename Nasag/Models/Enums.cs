@@ -81,3 +81,14 @@ public enum Permission
         | ManageSubjects | ManageMarks | ViewResults | ManageFees
         | ManageReports | ManageUsers | ManageSettings | ManageBackup
 }
+
+/// <summary>
+/// Discriminator for a <see cref="BackupLog"/> row: was the file produced by a
+/// <c>BACKUP DATABASE</c> (regular backup) or written as an audit trail for a
+/// <c>RESTORE DATABASE</c> operation? Stored as <c>int</c> via EF Core HasConversion.
+/// </summary>
+public enum BackupKind
+{
+    Backup = 0,
+    Restore = 1
+}

@@ -29,4 +29,10 @@ public sealed class AuthResult
 public interface IAuthService
 {
     Task<AuthResult> SignInAsync(string username, string password, CancellationToken ct = default);
+
+    /// <summary>
+    /// Changes the signed-in user's password. Throws <see cref="System.InvalidOperationException"/>
+    /// when no user is signed in, the old password is wrong, or the new one fails policy.
+    /// </summary>
+    Task ChangeOwnPasswordAsync(string oldPassword, string newPassword, CancellationToken ct = default);
 }

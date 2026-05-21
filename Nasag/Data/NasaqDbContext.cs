@@ -58,6 +58,7 @@ public class NasaqDbContext : DbContext
             e.Property(x => x.Email).HasMaxLength(120);
             e.Property(x => x.Website).HasMaxLength(160);
             e.Property(x => x.PrincipalName).HasMaxLength(120);
+            e.Property(x => x.LogoBytes).HasColumnType("varbinary(max)");
             e.HasOne(x => x.CurrentAcademicYear).WithMany()
              .HasForeignKey(x => x.CurrentAcademicYearId).OnDelete(DeleteBehavior.SetNull);
         });
@@ -207,6 +208,7 @@ public class NasaqDbContext : DbContext
         {
             e.Property(x => x.FilePath).IsRequired().HasMaxLength(400);
             e.Property(x => x.Notes).HasMaxLength(300);
+            e.Property(x => x.Kind).HasConversion<int>().HasDefaultValue(BackupKind.Backup);
             e.HasOne(x => x.CreatedByUser).WithMany()
              .HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
         });

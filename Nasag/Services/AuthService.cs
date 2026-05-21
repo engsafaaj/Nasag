@@ -5,16 +5,24 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Nasag.Data;
 using Nasag.Models;
+using Nasag.Repositories;
 
 namespace Nasag.Services;
 
 public sealed class AuthService : IAuthService
 {
     private readonly IDbContextFactory<NasaqDbContext> _factory;
+    private readonly IUsersRepository _usersRepo;
+    private readonly ICurrentUserService _currentUser;
 
-    public AuthService(IDbContextFactory<NasaqDbContext> factory)
+    public AuthService(
+        IDbContextFactory<NasaqDbContext> factory,
+        IUsersRepository usersRepo,
+        ICurrentUserService currentUser)
     {
         _factory = factory;
+        _usersRepo = usersRepo;
+        _currentUser = currentUser;
     }
 
     public async Task<AuthResult> SignInAsync(string username, string password, CancellationToken ct = default)
@@ -65,5 +73,15 @@ public sealed class AuthService : IAuthService
         {
             return AuthResult.Fail(AuthFailureReason.Unknown, "حدث خطأ غير متوقع: " + ex.Message);
         }
+    }
+
+    public Task ChangeOwnPasswordAsync(string oldPassword, string newPassword, CancellationToken ct = default)
+    {
+        // Delegates to the repository so all password hashing / verification stays
+        // in a single, well-tested place. The repo throws Arabic messages on policy
+        // failures which the VM surfaces directly to the user.
+        var userId = _currentUser.User?.Id
+            ?? throw new InvalidOperationException("لا يوجد مستخدم مسجَّل دخوله.");
+        return _usersRepo.ChangeOwnPasswordAsync(userId, oldPassword, newPassword, ct);
     }
 }

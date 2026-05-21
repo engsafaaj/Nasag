@@ -21,43 +21,6 @@ public abstract partial class PageViewModel : ObservableObject
     public virtual Task ActivateAsync(CancellationToken ct = default) => Task.CompletedTask;
 }
 
-public sealed class UsersViewModel : PageViewModel
-{
-    public override string TitleAr => "المستخدمون";
-    public override string SubtitleAr => "إدارة المستخدمين والأدوار والصلاحيات";
-}
-
-public sealed partial class SettingsViewModel : PageViewModel
-{
-    private readonly Nasag.Services.IUserPreferencesService _prefs;
-    private readonly Nasag.Services.IToastService _toasts;
-
-    public SettingsViewModel(
-        Nasag.Services.IUserPreferencesService prefs,
-        Nasag.Services.IToastService toasts)
-    {
-        _prefs = prefs;
-        _toasts = toasts;
-        _studentsSortAlphabetically = _prefs.Current.StudentsSortAlphabetically;
-    }
-
-    public override string TitleAr => "الإعدادات";
-    public override string SubtitleAr => "بيانات المدرسة والسنة الدراسية والإعدادات العامة";
-
-    [ObservableProperty]
-    private bool _studentsSortAlphabetically;
-
-    partial void OnStudentsSortAlphabeticallyChanged(bool value)
-    {
-        _prefs.Current.StudentsSortAlphabetically = value;
-        _prefs.Save();
-        _toasts.Success("تم حفظ الإعداد",
-            value ? "سيتم ترتيب الطلاب أبجدياً." : "سيظهر الطالب الأحدث في الأعلى.");
-    }
-}
-
-public sealed class BackupViewModel : PageViewModel
-{
-    public override string TitleAr => "النسخ الاحتياطي";
-    public override string SubtitleAr => "إنشاء النسخ الاحتياطية واسترجاعها";
-}
+// Phase 12: SettingsViewModel, UsersViewModel, and BackupViewModel have moved to
+// their own dedicated namespaces (Nasag.ViewModels.Pages.Settings/Users/Backup)
+// to allow full editor screens. Their stubs were removed from this file.

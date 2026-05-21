@@ -256,6 +256,8 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 Backup*/
+!Nasag/ViewModels/Pages/Backup/
+!Nasag/Views/Pages/Backup/
 UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/

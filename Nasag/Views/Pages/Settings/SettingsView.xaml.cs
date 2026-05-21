@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace Nasag.Views.Pages;
+namespace Nasag.Views.Pages.Settings;
 
 public partial class SettingsView : UserControl
 {
