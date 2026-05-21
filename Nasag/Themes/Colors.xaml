@@ -63,6 +63,9 @@
     <!-- Semi-transparent white overlay (used over disabled grids / behind empty states) -->
     <SolidColorBrush x:Key="OverlayBrush" Color="#FFFFFF" Opacity="0.67" />
 
+    <!-- 20% black overlay for modal scrims (ErrorWindow icon background, etc.) -->
+    <SolidColorBrush x:Key="OverlayDarkBrush" Color="#000000" Opacity="0.2" />
+
     <CornerRadius x:Key="RadiusSm">6</CornerRadius>
     <CornerRadius x:Key="RadiusMd">10</CornerRadius>
     <CornerRadius x:Key="RadiusLg">14</CornerRadius>

@@ -56,7 +56,16 @@ public sealed class ErrorReporter : IErrorReporter
         if (app is null)
         {
             // Fallback if WPF isn't initialized yet (very early startup).
-            MessageBox.Show(userMessage + "\n\n" + (exception?.ToString() ?? string.Empty), title);
+            // IDialogService / NasaqDialog both need a live WPF Dispatcher to render — at this
+            // point we have no Application and no Dispatcher, so MessageBox is the only option
+            // that can surface the error to the user. RTL options keep the Arabic text aligned.
+            MessageBox.Show(
+                userMessage + "\n\n" + (exception?.ToString() ?? string.Empty),
+                title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Error,
+                MessageBoxResult.OK,
+                MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign);
             return;
         }
 

@@ -330,7 +330,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
 
-                <Border Background="#AAFFFFFF"
+                <Border Background="{StaticResource OverlayBrush}"
                         Visibility="{Binding HasRows, Converter={StaticResource InverseBoolToVisibility}}"
                         IsHitTestVisible="False">
                     <TextBlock Text="لا توجد سجلات حضور"

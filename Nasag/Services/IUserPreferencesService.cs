@@ -1,3 +1,7 @@
+using System;
+using System.Security.Cryptography;
+using System.Text;
+
 namespace Nasag.Services;
 
 public sealed class UserPreferences
@@ -12,6 +16,42 @@ public sealed class UserPreferences
     /// like the rest of <see cref="UserPreferences"/>; not part of the school DB.
     /// </summary>
     public string? BackupFolder { get; set; }
+
+    /// <summary>
+    /// كلمة المرور المحفوظة عند تفعيل «تذكّرني» — مُشفَّرة بـ DPAPI
+    /// (CurrentUser scope) ثم Base64. لا تُخزَّن أبداً بنص واضح.
+    /// </summary>
+    public string? RememberedPasswordProtected { get; set; }
+
+    /// <summary>يحدّد قيمة كلمة المرور المحفوظة عبر تشفيرها بـ DPAPI.</summary>
+    public void SetRememberedPassword(string? plaintext)
+    {
+        if (string.IsNullOrEmpty(plaintext))
+        {
+            RememberedPasswordProtected = null;
+            return;
+        }
+        var bytes = Encoding.UTF8.GetBytes(plaintext);
+        var protectedBytes = ProtectedData.Protect(bytes, optionalEntropy: null, DataProtectionScope.CurrentUser);
+        RememberedPasswordProtected = Convert.ToBase64String(protectedBytes);
+    }
+
+    /// <summary>يعيد كلمة المرور المحفوظة بنص واضح، أو null إن لم توجد أو فسدت.</summary>
+    public string? GetRememberedPassword()
+    {
+        if (string.IsNullOrEmpty(RememberedPasswordProtected)) return null;
+        try
+        {
+            var protectedBytes = Convert.FromBase64String(RememberedPasswordProtected);
+            var bytes = ProtectedData.Unprotect(protectedBytes, optionalEntropy: null, DataProtectionScope.CurrentUser);
+            return Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            // فاسد أو من جلسة Windows مختلفة → نتعامل كأنه غير محفوظ.
+            return null;
+        }
+    }
 }
 
 public interface IUserPreferencesService

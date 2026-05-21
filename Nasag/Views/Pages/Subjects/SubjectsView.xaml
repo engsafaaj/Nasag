@@ -313,7 +313,7 @@
                 </DataGrid>
 
                 <!-- Empty state overlay (only when not loading and no rows) -->
-                <Border Background="#AAFFFFFF"
+                <Border Background="{StaticResource OverlayBrush}"
                         IsHitTestVisible="False">
                     <Border.Style>
                         <Style TargetType="Border">

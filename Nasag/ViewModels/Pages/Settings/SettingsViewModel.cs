@@ -5,9 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Nasag.Models;
 using Nasag.Services;
+using Nasag.ViewModels.Setup;
 using Nasag.Views.Pages.Settings;
+using Nasag.Views.Setup;
 
 namespace Nasag.ViewModels.Pages.Settings;
 
@@ -27,6 +30,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     private readonly IUserPreferencesService _prefs;
     private readonly IBusyService _busy;
     private readonly ICurrentUserService _currentUser;
+    private readonly IServiceProvider _services;
+    private readonly IApplicationRestarter _restarter;
 
     private bool _isInitializing = true;
     private bool _reloadInFlight;
@@ -39,7 +44,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         IErrorReporter errors,
         IUserPreferencesService prefs,
         IBusyService busy,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IServiceProvider services,
+        IApplicationRestarter restarter)
     {
         _repo = repo;
         _files = files;
@@ -49,6 +56,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         _prefs = prefs;
         _busy = busy;
         _currentUser = currentUser;
+        _services = services;
+        _restarter = restarter;
 
         // Assign backing fields directly so OnXxxChanged partial methods do NOT fire
         // while the constructor runs (AI_INSTRUCTIONS section 13).
@@ -373,6 +382,39 @@ public sealed partial class SettingsViewModel : PageViewModel
         catch (Exception ex)
         {
             _errors.Report("تعذّر حذف السنة الدراسية", ex.Message, ex);
+        }
+    }
+
+    /// <summary>
+    /// Opens the borderless first-run setup wizard so the user can re-configure
+    /// the SQL Server connection string. On Save the wizard returns true and
+    /// we surface a "restart to apply" dialog — the actual restart is the
+    /// responsibility of <c>App.xaml.cs</c> (Agent A) when this wizard is opened
+    /// at startup; here we only ask the user to relaunch manually.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenDatabaseSetupAsync()
+    {
+        try
+        {
+            var wizard = _services.GetRequiredService<SetupWizardWindow>();
+            wizard.DataContext = _services.GetRequiredService<SetupWizardViewModel>();
+            wizard.Owner = System.Windows.Application.Current?.MainWindow;
+            var ok = wizard.ShowDialog();
+            if (ok == true)
+            {
+                var restart = await _dialogs.ConfirmAsync(
+                    "تم حفظ إعدادات الاتصال",
+                    "أعد تشغيل البرنامج لتطبيق التغييرات. هل تريد إعادة التشغيل الآن؟").ConfigureAwait(true);
+                if (restart)
+                {
+                    _restarter.RestartNow();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر فتح معالج إعداد قاعدة البيانات", ex.Message, ex);
         }
     }
 }

@@ -9,7 +9,23 @@ public partial class LoginView : Window
     public LoginView()
     {
         InitializeComponent();
-        Loaded += (_, _) => UsernameField.Focus();
+        Loaded += OnViewLoaded;
+    }
+
+    private void OnViewLoaded(object sender, RoutedEventArgs e)
+    {
+        // إن كان المستخدم محفوظاً عبر «تذكّرني»، أعِد ملء PasswordBox من الـ VM
+        // (لا يمكن ربط Password مباشرة لأسباب أمنية في WPF) — ثم انقل التركيز
+        // مباشرة لزر تسجيل الدخول حتى يكفي Enter للدخول دون إعادة الكتابة.
+        if (DataContext is LoginViewModel vm && !string.IsNullOrEmpty(vm.Password))
+        {
+            PasswordField.Password = vm.Password;
+            PasswordField.Focus();
+        }
+        else
+        {
+            UsernameField.Focus();
+        }
     }
 
     /// <summary>

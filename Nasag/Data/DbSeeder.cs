@@ -5,25 +5,139 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nasag.Models;
+using Nasag.Services;
 
 namespace Nasag.Data;
 
 public sealed class DbSeeder : IDbSeeder
 {
     private readonly IDbContextFactory<NasaqDbContext> _factory;
+    private readonly IPendingAdminSetupStore _pendingStore;
 
-    public DbSeeder(IDbContextFactory<NasaqDbContext> factory)
+    public DbSeeder(IDbContextFactory<NasaqDbContext> factory, IPendingAdminSetupStore pendingStore)
     {
         _factory = factory;
+        _pendingStore = pendingStore;
     }
 
     public async Task SeedIfEmptyAsync(CancellationToken ct = default)
     {
         await using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
 
+        // (1) Idempotence — لا نلمس قاعدة موجودة بها مستخدمون.
         if (await ctx.Users.AnyAsync(ct).ConfigureAwait(false))
             return;
 
+        // (2) هل هناك حمولة مدير قادمة من معالج الإعداد؟ (تستهلك الملف وتحذفه)
+        var pending = _pendingStore.ReadAndClear();
+
+        if (pending is not null)
+        {
+            // وضع التثبيت الفعلي: أدوار + مدير من بيانات المعالج + Placeholder للمدرسة فقط.
+            await SeedMinimalAsync(ctx, pending, ct).ConfigureAwait(false);
+        }
+        else
+        {
+            // وضع المطوّر / العرض التجريبي: البذرة الغنية كما كانت.
+            await SeedFullDemoAsync(ctx, ct).ConfigureAwait(false);
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Minimal seed — يستخدم عند إنشاء قاعدة جديدة من معالج الإعداد.
+    //   * يُنشئ الأدوار الأربعة.
+    //   * يُنشئ مستخدم admin من بيانات المعالج (كلمة المرور مُجزّأة BCrypt).
+    //   * يُنشئ Placeholder لـ SchoolSettings كي لا تنهار الشاشات
+    //     التي تتوقع وجود صف واحد على الأقل (الإعدادات، التقارير، الرسوم).
+    //   * لا سنة دراسية ولا صفوف ولا شعب ولا مواد ولا امتحانات ولا طلاب.
+    //     المستخدم يُكمل البيانات من شاشات CRUD الموجودة.
+    // ────────────────────────────────────────────────────────────────────────
+    private static async Task SeedMinimalAsync(
+        NasaqDbContext ctx,
+        PendingAdminSetup pending,
+        CancellationToken ct)
+    {
+        var strategy = ctx.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await ctx.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+            var adminRole = await SeedRolesAsync(ctx, ct).ConfigureAwait(false);
+            await SeedAdminAsync(ctx, adminRole, pending, ct).ConfigureAwait(false);
+            await SeedSchoolPlaceholderAsync(ctx, ct).ConfigureAwait(false);
+
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+        }).ConfigureAwait(false);
+    }
+
+    // إنشاء الأدوار الأربعة الأساسية. يُرجع كائن دور «مدير النظام»
+    // لأنه يُستخدم لاحقاً عند إنشاء مستخدم admin.
+    private static async Task<Role> SeedRolesAsync(NasaqDbContext ctx, CancellationToken ct)
+    {
+        var adminRole = new Role { NameAr = "مدير النظام", Permissions = Permission.All, IsSystem = true };
+        var principalRole = new Role
+        {
+            NameAr = "مدير المدرسة",
+            Permissions = Permission.All & ~(Permission.ManageUsers | Permission.ManageBackup)
+        };
+        var teacherRole = new Role
+        {
+            NameAr = "معلم",
+            Permissions = Permission.ViewDashboard | Permission.ManageAttendance
+                        | Permission.ManageMarks | Permission.ViewResults
+        };
+        var accountantRole = new Role
+        {
+            NameAr = "محاسب",
+            Permissions = Permission.ViewDashboard | Permission.ManageFees | Permission.ManageReports
+        };
+        ctx.Roles.AddRange(adminRole, principalRole, teacherRole, accountantRole);
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+        return adminRole;
+    }
+
+    // إنشاء مستخدم admin من حمولة المعالج. كلمة المرور تُجزَّأ هنا بـ BCrypt
+    // (workFactor=11 كي تتوافق مع باقي الكود) ثم تُمسح من الذاكرة قدر الإمكان.
+    private static async Task SeedAdminAsync(
+        NasaqDbContext ctx,
+        Role adminRole,
+        PendingAdminSetup pending,
+        CancellationToken ct)
+    {
+        var admin = new User
+        {
+            Username = string.IsNullOrWhiteSpace(pending.Username) ? "admin" : pending.Username.Trim(),
+            FullName = string.IsNullOrWhiteSpace(pending.FullName) ? "مدير النظام" : pending.FullName.Trim(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+                string.IsNullOrEmpty(pending.Password) ? "admin123" : pending.Password,
+                workFactor: 11),
+            IsActive = true,
+            RoleId = adminRole.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        ctx.Users.Add(admin);
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    // صف SchoolSettings مبدئي حتى لا تنهار الصفحات التي تتوقع وجوده.
+    // المستخدم يُحرّر الاسم والشعار والعنوان من «الإعدادات → المدرسة» بعد الدخول.
+    private static async Task SeedSchoolPlaceholderAsync(NasaqDbContext ctx, CancellationToken ct)
+    {
+        ctx.SchoolSettings.Add(new SchoolSettings
+        {
+            NameAr = "مدرستي",
+            CurrentAcademicYearId = null
+        });
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Full demo seed — السلوك السابق نفسه (محفوظ لتجربة المطوّر).
+    // يعمل فقط عندما لا توجد حمولة مدير من المعالج (مثلاً قاعدة LocalDB
+    // فارغة في بيئة التطوير من غير المرور بالمعالج).
+    // ────────────────────────────────────────────────────────────────────────
+    private static async Task SeedFullDemoAsync(NasaqDbContext ctx, CancellationToken ct)
+    {
         // 1) Roles
         var adminRole = new Role { NameAr = "مدير النظام", Permissions = Permission.All, IsSystem = true };
         var principalRole = new Role
@@ -49,7 +163,7 @@ public sealed class DbSeeder : IDbSeeder
         var admin = new User
         {
             Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123", workFactor: 11),
             FullName = "مدير النظام",
             IsActive = true,
             RoleId = adminRole.Id,

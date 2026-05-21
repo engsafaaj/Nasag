@@ -29,7 +29,7 @@
                 <StackPanel Orientation="Horizontal">
                     <Border Width="36" Height="36"
                             CornerRadius="18"
-                            Background="#33000000"
+                            Background="{StaticResource OverlayDarkBrush}"
                             VerticalAlignment="Center">
                         <Path Data="M12 9 V13 M12 17 H12.01 M2 20 L12 4 L22 20 Z"
                               Stroke="White"

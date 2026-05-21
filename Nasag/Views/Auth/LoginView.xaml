@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:Nasag.ViewModels.Auth"
+        xmlns:controls="clr-namespace:Nasag.Controls"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:LoginViewModel}"
         Style="{StaticResource BaseWindowStyle}"
@@ -94,6 +95,75 @@
                            TextAlignment="Center"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,26" />
+
+                <!-- ============ Connection bar (database picker + add) ============ -->
+                <Border Background="{StaticResource BackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource RadiusSm}"
+                        Padding="10,6"
+                        Margin="0,0,0,18"
+                        Visibility="{Binding Registry.IsEmpty, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Database icon + caption (visually right under RTL) -->
+                        <StackPanel Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"
+                                    Margin="4,0,8,0">
+                            <Path Data="{StaticResource IconBackup}"
+                                  Stroke="{StaticResource TealPressedBrush}"
+                                  StrokeThickness="1.6"
+                                  Fill="Transparent"
+                                  Stretch="Uniform"
+                                  Width="16" Height="16"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="قاعدة البيانات:"
+                                       Style="{StaticResource MutedTextStyle}"
+                                       VerticalAlignment="Center"
+                                       Margin="6,0,0,0" />
+                        </StackPanel>
+
+                        <!-- Picker -->
+                        <controls:SearchableComboBox Grid.Column="1"
+                                                     ItemsSource="{Binding AvailableConnections}"
+                                                     SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"
+                                                     DisplayMemberPath="DisplayName"
+                                                     Placeholder="اختر قاعدة"
+                                                     Margin="8,0,8,0"
+                                                     VerticalAlignment="Center" />
+
+                        <!-- Add button -->
+                        <Button Grid.Column="2"
+                                Style="{StaticResource GhostButton}"
+                                Command="{Binding AddConnectionCommand}"
+                                Padding="10,6"
+                                ToolTip="إضافة قاعدة بيانات جديدة">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconAdd}"
+                                      Stroke="{StaticResource TealPressedBrush}"
+                                      StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Fill="Transparent"
+                                      Stretch="Uniform"
+                                      Width="14" Height="14"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="إضافة"
+                                           FontFamily="{StaticResource TajawalFont}"
+                                           FontSize="{StaticResource FontSizeSm}"
+                                           Foreground="{StaticResource TealPressedBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
 
                 <!-- Error banner (text reads RTL naturally; TextAlignment omitted to let default L → visual R) -->
                 <Border Background="#FEE2E2"
@@ -193,23 +263,6 @@
                          Foreground="{StaticResource TealPrimaryBrush}"
                          Cursor="Hand" />
                 </TextBlock>
-
-                <!-- Demo hint -->
-                <Border Background="#F5F7FB"
-                        CornerRadius="{StaticResource RadiusSm}"
-                        Padding="12,8"
-                        Margin="0,18,0,0">
-                    <TextBlock FontFamily="{StaticResource TajawalFont}"
-                               FontSize="{StaticResource FontSizeXs}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap">
-                        <Run Text="حساب تجريبي: " />
-                        <Run Text="admin" FontWeight="Bold" />
-                        <Run Text=" / " />
-                        <Run Text="admin123" FontWeight="Bold" />
-                    </TextBlock>
-                </Border>
 
             </StackPanel>
         </Border>

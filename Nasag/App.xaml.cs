@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.EntityFrameworkCore;
@@ -22,10 +23,12 @@ using Nasag.ViewModels.Pages.Subjects;
 using Nasag.ViewModels.Pages.Settings;
 using Nasag.ViewModels.Pages.Users;
 using Nasag.ViewModels.Pages.Backup;
+using Nasag.ViewModels.Splash;
 using Nasag.Services.Reports;
 using Nasag.ViewModels.Shell;
 using Nasag.Views.Auth;
 using Nasag.Views.Shell;
+using Nasag.Views.Splash;
 
 namespace Nasag;
 
@@ -35,6 +38,7 @@ public partial class App : Application
 
     private LoginView? _loginWindow;
     private MainShellView? _shellWindow;
+    private SplashWindow? _splashWindow;
 
     public static T GetService<T>() where T : class
         => Host?.Services.GetRequiredService<T>()
@@ -44,6 +48,10 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // ConnectionStringProvider guarantees Current is never empty (falls back to a
+        // LocalDB default when both override and appsettings are missing). That lets
+        // AddDbContextFactory build cleanly; if the resulting connection fails, the
+        // splash → CannotConnect → Setup Wizard path takes over naturally.
         Host = Microsoft.Extensions.Hosting.Host
             .CreateDefaultBuilder()
             .ConfigureAppConfiguration((_, config) =>
@@ -74,28 +82,19 @@ public partial class App : Application
             args.SetObserved();
         };
 
-        // 1) Initialize database (apply pending migrations + seed if empty).
-        var initializer = GetService<IDatabaseInitializer>();
-        var result = await Task.Run(() => initializer.InitializeAsync()).ConfigureAwait(true);
+        // 1) Show splash first; it runs InitializeAsync and signals back via Completed.
+        var splashVm = GetService<SplashViewModel>();
+        splashVm.Completed += OnSplashCompleted;
 
-        if (!result.IsSuccess)
+        _splashWindow = new SplashWindow
         {
-            var details = string.IsNullOrWhiteSpace(result.Details) ? string.Empty : $"\n\nالتفاصيل: {result.Details}";
-            Nasag.Views.Common.NasaqDialog.Show(
-                null,
-                "نَسَق — تعذّر بدء التشغيل",
-                $"{result.ErrorMessage}{details}",
-                Nasag.Views.Common.NasaqDialogKind.Danger);
-            Shutdown(-1);
-            return;
-        }
+            DataContext = splashVm
+        };
+        MainWindow = _splashWindow;
+        _splashWindow.Show();
 
-        // 2) Wire auth lifecycle: Login -> Shell -> Login on logout.
-        var currentUser = GetService<ICurrentUserService>();
-        currentUser.SignedIn += OnSignedIn;
-        currentUser.SignedOut += OnSignedOut;
-
-        ShowLoginWindow();
+        // Fire-and-forget the init; the VM raises Completed when done (success or terminal error).
+        _ = splashVm.RunInitAsync();
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -107,6 +106,93 @@ public partial class App : Application
             Host = null;
         }
         base.OnExit(e);
+    }
+
+    private void OnSplashCompleted(object? sender, SplashResult result)
+    {
+        // Marshal to UI thread to be safe (Completed may fire from a worker).
+        Dispatcher.Invoke(() =>
+        {
+            switch (result.Status)
+            {
+                case DatabaseInitStatus.Success:
+                    CloseSplash();
+                    WireAuthLifecycleAndShowLogin();
+                    break;
+
+                case DatabaseInitStatus.CannotConnect:
+                    CloseSplash();
+                    ShowSetupWizard();
+                    break;
+
+                default:
+                    // Terminal error — splash stays visible in error state. User clicks
+                    // "إعادة المحاولة" (RetryCommand) or "فتح معالج الإعداد" which re-fires Completed.
+                    break;
+            }
+        });
+    }
+
+    private void WireAuthLifecycleAndShowLogin()
+    {
+        var currentUser = GetService<ICurrentUserService>();
+        currentUser.SignedIn += OnSignedIn;
+        currentUser.SignedOut += OnSignedOut;
+        ShowLoginWindow();
+    }
+
+    private void ShowSetupWizard()
+    {
+        while (true)
+        {
+            try
+            {
+                var wizard = GetService<Nasag.Views.Setup.SetupWizardWindow>();
+                wizard.DataContext = GetService<Nasag.ViewModels.Setup.SetupWizardViewModel>();
+                var ok = wizard.ShowDialog();
+                if (ok == true)
+                {
+                    Nasag.Views.Common.NasaqDialog.Show(
+                        null,
+                        "نَسَق — إعادة التشغيل",
+                        "تم حفظ إعدادات الاتصال. سيُعاد تشغيل البرنامج الآن.",
+                        Nasag.Views.Common.NasaqDialogKind.Success);
+                    GetService<IApplicationRestarter>().RestartNow();
+                    return;
+                }
+
+                // المعالج أُلغي. لا يمكن متابعة تشغيل البرنامج دون قاعدة بيانات،
+                // لذا نسأل المستخدم صراحة قبل الإغلاق بدلاً من Shutdown صامت.
+                var quit = Nasag.Views.Common.NasaqDialog.Confirm(
+                    null,
+                    "إغلاق البرنامج",
+                    "لم يتم إعداد قاعدة بيانات. لا يمكن متابعة تشغيل البرنامج دون قاعدة. هل تريد إغلاق البرنامج الآن؟",
+                    okText: "إغلاق البرنامج",
+                    cancelText: "العودة للمعالج",
+                    kind: Nasag.Views.Common.NasaqDialogKind.Warning);
+
+                if (quit)
+                {
+                    Shutdown(0);
+                    return;
+                }
+                // وإلا: نعيد فتح المعالج (الـ while loop).
+            }
+            catch (Exception ex)
+            {
+                var reporter = GetService<IErrorReporter>();
+                reporter.Report("تعذّر فتح معالج الإعداد", ex.Message, ex);
+                Shutdown(-1);
+                return;
+            }
+        }
+    }
+
+    private void CloseSplash()
+    {
+        if (_splashWindow is null) return;
+        try { _splashWindow.Close(); } catch { /* ignore */ }
+        _splashWindow = null;
     }
 
     private void ShowLoginWindow()
@@ -165,13 +251,17 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        // EF Core — pooled factory so any service can grab a short-lived context.
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection in appsettings.json");
+        // ConnectionRegistry يُبنى inline لأن AddDbContextFactory يحتاج سلسلة الاتصال
+        // مسبقاً (وقت بناء الـ Host)، قبل أن يستطيع DI حلّ الخدمات.
+        // ActiveConnectionString يضمن دائماً قيمة غير فارغة (نشط → appsettings → LocalDB).
+        var registry = new ConnectionRegistry(configuration);
+        services.AddSingleton<IConnectionRegistry>(registry);
+        services.AddSingleton<IServerDiscoveryService, ServerDiscoveryService>();
+        services.AddSingleton<IApplicationRestarter, ApplicationRestarter>();
 
         services.AddDbContextFactory<NasaqDbContext>(options =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseSqlServer(registry.ActiveConnectionString, sql =>
             {
                 sql.MigrationsAssembly(typeof(NasaqDbContext).Assembly.GetName().Name);
                 sql.EnableRetryOnFailure(
@@ -182,6 +272,7 @@ public partial class App : Application
         });
 
         // Data services
+        services.AddSingleton<IPendingAdminSetupStore, PendingAdminSetupStore>();
         services.AddSingleton<IDbSeeder, DbSeeder>();
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         services.AddSingleton(typeof(IRepository<>), typeof(Repository<>));
@@ -215,6 +306,12 @@ public partial class App : Application
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
         services.AddSingleton<IExcelService, ExcelService>();
+
+        // Phase 13 — Splash + Setup Wizard (wizard types live in Agent B's scope)
+        services.AddSingleton<Nasag.Services.IConnectionTester, Nasag.Services.ConnectionTester>();
+        services.AddSingleton<SplashViewModel>();
+        services.AddTransient<Nasag.ViewModels.Setup.SetupWizardViewModel>();
+        services.AddTransient<Nasag.Views.Setup.SetupWizardWindow>();
 
         // Auth
         services.AddTransient<LoginViewModel>();

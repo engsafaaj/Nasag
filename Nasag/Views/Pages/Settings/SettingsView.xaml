@@ -433,6 +433,50 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- ─── Card: Database connection ────────────────────── -->
+                    <Border Style="{StaticResource CardBorder}" Padding="18" Margin="0,0,0,12">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Border Width="26" Height="26" CornerRadius="13"
+                                        Background="{StaticResource InfoSoftBrush}">
+                                    <Path Data="{StaticResource IconBackup}"
+                                          Stroke="{StaticResource InfoBrush}"
+                                          StrokeThickness="1.7"
+                                          Fill="Transparent"
+                                          Stretch="Uniform"
+                                          Width="14" Height="14" />
+                                </Border>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="اتصال قاعدة البيانات"
+                                               FontWeight="Bold"
+                                               Style="{StaticResource SubheadTextStyle}" />
+                                    <TextBlock Text="إعادة ضبط الخادم وبيانات الاتصال عبر معالج خطوة-بخطوة."
+                                               Style="{StaticResource MutedTextStyle}"
+                                               FontSize="{StaticResource FontSizeSm}"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Command="{Binding OpenDatabaseSetupCommand}"
+                                    HorizontalAlignment="Right"
+                                    Padding="18,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource IconSettings}"
+                                          Stroke="{StaticResource TextPrimaryBrush}"
+                                          StrokeThickness="1.7"
+                                          Fill="Transparent"
+                                          Stretch="Uniform"
+                                          Width="14" Height="14"
+                                          VerticalAlignment="Center" />
+                                    <TextBlock Text="إعادة إعداد قاعدة البيانات"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
                     <!-- ─── Card 3: General preferences ──────────────────── -->
                     <Border Style="{StaticResource CardBorder}" Padding="18" Margin="0,0,0,12">
                         <StackPanel>
