@@ -9,7 +9,9 @@ using Microsoft.Extensions.Hosting;
 using Nasag.Data;
 using Nasag.Repositories;
 using Nasag.Services;
+using Nasag.Services.Licensing;
 using Nasag.ViewModels.Auth;
+using Nasag.ViewModels.Licensing;
 using Nasag.ViewModels.Pages;
 using Nasag.ViewModels.Pages.Attendance;
 using Nasag.ViewModels.Pages.Classes;
@@ -27,8 +29,11 @@ using Nasag.ViewModels.Splash;
 using Nasag.Services.Reports;
 using Nasag.ViewModels.Shell;
 using Nasag.Views.Auth;
+using Nasag.Views.Licensing;
 using Nasag.Views.Shell;
 using Nasag.Views.Splash;
+using Velopack;
+using LicensingStatus = Nasag.Licensing.License.LicenseStatus;
 
 namespace Nasag;
 
@@ -39,6 +44,8 @@ public partial class App : Application
     private LoginView? _loginWindow;
     private MainShellView? _shellWindow;
     private SplashWindow? _splashWindow;
+    private LicenseGateWindow? _gateWindow;
+    private ILicenseService? _licenseService;
 
     public static T GetService<T>() where T : class
         => Host?.Services.GetRequiredService<T>()
@@ -46,12 +53,19 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // Velopack must run before any other startup logic so its hook arguments
+        // (--veloapp-*) can short-circuit when invoked by the updater/installer.
+        try
+        {
+            VelopackApp.Build().Run();
+        }
+        catch
+        {
+            // Velopack may be absent in non-installed dev builds — harmless to ignore.
+        }
+
         base.OnStartup(e);
 
-        // ConnectionStringProvider guarantees Current is never empty (falls back to a
-        // LocalDB default when both override and appsettings are missing). That lets
-        // AddDbContextFactory build cleanly; if the resulting connection fails, the
-        // splash → CannotConnect → Setup Wizard path takes over naturally.
         Host = Microsoft.Extensions.Hosting.Host
             .CreateDefaultBuilder()
             .ConfigureAppConfiguration((_, config) =>
@@ -81,6 +95,9 @@ public partial class App : Application
             reporter.Report("خطأ في مهمة خلفية", args.Exception.Message, args.Exception);
             args.SetObserved();
         };
+
+        // Cache the license service so all license-gate paths share one instance.
+        _licenseService = GetService<ILicenseService>();
 
         // 1) Show splash first; it runs InitializeAsync and signals back via Completed.
         var splashVm = GetService<SplashViewModel>();
@@ -117,6 +134,15 @@ public partial class App : Application
             {
                 case DatabaseInitStatus.Success:
                     CloseSplash();
+
+                    // Phase 14 — License gate runs AFTER splash but BEFORE login.
+                    var status = _licenseService?.GetStatusOnStartup();
+                    if (status is not (LicensingStatus.Activated or LicensingStatus.Trial))
+                    {
+                        ShowLicenseGate(status);
+                        return;
+                    }
+
                     WireAuthLifecycleAndShowLogin();
                     break;
 
@@ -126,11 +152,29 @@ public partial class App : Application
                     break;
 
                 default:
-                    // Terminal error — splash stays visible in error state. User clicks
-                    // "إعادة المحاولة" (RetryCommand) or "فتح معالج الإعداد" which re-fires Completed.
+                    // Terminal error — splash stays visible in error state.
                     break;
             }
         });
+    }
+
+    private void ShowLicenseGate(LicensingStatus? status)
+    {
+        try
+        {
+            var vm = GetService<LicenseGateViewModel>();
+            if (status is not null) vm.SetStatus(status);
+            _gateWindow = GetService<LicenseGateWindow>();
+            _gateWindow.DataContext = vm;
+            MainWindow = _gateWindow;
+            _gateWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            var reporter = GetService<IErrorReporter>();
+            reporter.Report("تعذّر فتح بوابة الترخيص", ex.Message, ex);
+            Shutdown(-1);
+        }
     }
 
     private void WireAuthLifecycleAndShowLogin()
@@ -161,8 +205,6 @@ public partial class App : Application
                     return;
                 }
 
-                // المعالج أُلغي. لا يمكن متابعة تشغيل البرنامج دون قاعدة بيانات،
-                // لذا نسأل المستخدم صراحة قبل الإغلاق بدلاً من Shutdown صامت.
                 var quit = Nasag.Views.Common.NasaqDialog.Confirm(
                     null,
                     "إغلاق البرنامج",
@@ -176,7 +218,6 @@ public partial class App : Application
                     Shutdown(0);
                     return;
                 }
-                // وإلا: نعيد فتح المعالج (الـ while loop).
             }
             catch (Exception ex)
             {
@@ -223,6 +264,30 @@ public partial class App : Application
             _loginWindow.Close();
             _loginWindow = null;
         }
+
+        // Fire-and-forget background update check 5 seconds after shell is up.
+        _ = ScheduleStartupUpdateCheckAsync();
+    }
+
+    private async Task ScheduleStartupUpdateCheckAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+            var updates = GetService<IUpdateService>();
+            var toasts = GetService<IToastService>();
+            var result = await updates.CheckAsync().ConfigureAwait(true);
+            if (result.HasUpdate && !string.IsNullOrWhiteSpace(result.NewVersion))
+            {
+                toasts.Info(
+                    "تتوفر نسخة جديدة",
+                    $"النسخة {result.NewVersion} متاحة. افتح «الإعدادات → التحديثات» للتفاصيل.");
+            }
+        }
+        catch
+        {
+            // فحص بدء التشغيل يجب ألا يفسد التطبيق.
+        }
     }
 
     private void OnSignedOut(object? sender, EventArgs e)
@@ -251,9 +316,6 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        // ConnectionRegistry يُبنى inline لأن AddDbContextFactory يحتاج سلسلة الاتصال
-        // مسبقاً (وقت بناء الـ Host)، قبل أن يستطيع DI حلّ الخدمات.
-        // ActiveConnectionString يضمن دائماً قيمة غير فارغة (نشط → appsettings → LocalDB).
         var registry = new ConnectionRegistry(configuration);
         services.AddSingleton<IConnectionRegistry>(registry);
         services.AddSingleton<IServerDiscoveryService, ServerDiscoveryService>();
@@ -307,7 +369,17 @@ public partial class App : Application
         services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
         services.AddSingleton<IExcelService, ExcelService>();
 
-        // Phase 13 — Splash + Setup Wizard (wizard types live in Agent B's scope)
+        // Phase 14 — Licensing + Updates
+        services.AddSingleton<ILicenseService, LicenseService>();
+        services.AddSingleton<IUpdateService, UpdateService>();
+        services.AddTransient<LicenseGateWindow>();
+        services.AddTransient<ActivationWindow>();
+        services.AddTransient<UpdateWindow>();
+        services.AddTransient<LicenseGateViewModel>();
+        services.AddTransient<ActivationViewModel>();
+        services.AddTransient<UpdateViewModel>();
+
+        // Phase 13 — Splash + Setup Wizard
         services.AddSingleton<Nasag.Services.IConnectionTester, Nasag.Services.ConnectionTester>();
         services.AddSingleton<SplashViewModel>();
         services.AddTransient<Nasag.ViewModels.Setup.SetupWizardViewModel>();

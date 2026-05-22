@@ -477,6 +477,199 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- ─── Card: License management (Phase 14) ────────────── -->
+                    <Border Style="{StaticResource CardBorder}" Padding="18" Margin="0,0,0,12">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Border Width="26" Height="26" CornerRadius="13"
+                                        Background="{StaticResource TealSoftBrush}">
+                                    <Path Data="{StaticResource IconCertificate}"
+                                          Stroke="{StaticResource TealPressedBrush}"
+                                          StrokeThickness="1.7"
+                                          Fill="Transparent"
+                                          Stretch="Uniform"
+                                          Width="14" Height="14" />
+                                </Border>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="إدارة الترخيص"
+                                               FontWeight="Bold"
+                                               Style="{StaticResource SubheadTextStyle}" />
+                                    <TextBlock Text="معلومات الترخيص الحالي وأدوات التفعيل وإلغاء التفعيل."
+                                               Style="{StaticResource MutedTextStyle}"
+                                               FontSize="{StaticResource FontSizeSm}"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,10">
+                                    <TextBlock Text="الحالة" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock Text="{Binding LicenseStatusText}"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               FontWeight="Bold" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
+                                    <TextBlock Text="الزبون" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock Text="{Binding LicenseCustomerName}"
+                                               Style="{StaticResource BodyTextStyle}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="0">
+                                    <TextBlock Text="الإصدار" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock Text="{Binding LicenseEdition}"
+                                               Style="{StaticResource BodyTextStyle}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="2">
+                                    <TextBlock Text="تاريخ الانتهاء" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock Text="{Binding LicenseExpiry}"
+                                               Style="{StaticResource BodyTextStyle}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding OpenActivationCommand}"
+                                        Padding="18,8"
+                                        Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft">
+                                        <Path Data="{StaticResource IconKey}"
+                                              Stroke="White"
+                                              StrokeThickness="2"
+                                              Fill="Transparent"
+                                              Stretch="Uniform"
+                                              Width="14" Height="14"
+                                              VerticalAlignment="Center" />
+                                        <TextBlock Text="تفعيل / إعادة تفعيل"
+                                                   Margin="8,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource SecondaryButton}"
+                                        Command="{Binding CopyMachineIdCommand}"
+                                        Padding="18,8"
+                                        Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft">
+                                        <Path Data="{StaticResource IconCopy}"
+                                              Stroke="{StaticResource TextPrimaryBrush}"
+                                              StrokeThickness="2"
+                                              Fill="Transparent"
+                                              Stretch="Uniform"
+                                              Width="14" Height="14"
+                                              VerticalAlignment="Center" />
+                                        <TextBlock Text="نسخ رمز الجهاز"
+                                                   Margin="8,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource GhostButton}"
+                                        Command="{Binding DeactivateCommand}"
+                                        Padding="18,8">
+                                    <TextBlock Text="إلغاء التفعيل"
+                                               Foreground="{StaticResource DangerBrush}"
+                                               FontWeight="Medium" />
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ─── Card: Updates (Phase 14) ──────────────────────── -->
+                    <Border Style="{StaticResource CardBorder}" Padding="18" Margin="0,0,0,12">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Border Width="26" Height="26" CornerRadius="13"
+                                        Background="{StaticResource InfoSoftBrush}">
+                                    <Path Data="{StaticResource IconDownload}"
+                                          Stroke="{StaticResource InfoBrush}"
+                                          StrokeThickness="1.7"
+                                          Fill="Transparent"
+                                          Stretch="Uniform"
+                                          Width="14" Height="14" />
+                                </Border>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="التحديثات"
+                                               FontWeight="Bold"
+                                               Style="{StaticResource SubheadTextStyle}" />
+                                    <TextBlock Text="التحقق من توفر إصدارات جديدة عبر Velopack."
+                                               Style="{StaticResource MutedTextStyle}"
+                                               FontSize="{StaticResource FontSizeSm}"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="الإصدار الحالي" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock Text="{Binding UpdateCurrentVersion}"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               FontWeight="Bold" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="آخر فحص" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock Text="{Binding UpdateLastCheckedText}"
+                                               Style="{StaticResource BodyTextStyle}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="مصدر التحديثات" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{Binding UpdateSourceText}"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       FontFamily="Consolas"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,12" />
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding OpenUpdatesCommand}"
+                                        Padding="18,8"
+                                        Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft">
+                                        <Path Data="{StaticResource IconDownload}"
+                                              Stroke="White"
+                                              StrokeThickness="2"
+                                              Fill="Transparent"
+                                              Stretch="Uniform"
+                                              Width="14" Height="14"
+                                              VerticalAlignment="Center" />
+                                        <TextBlock Text="التحقق من التحديثات"
+                                                   Margin="8,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource SecondaryButton}"
+                                        Command="{Binding PickUpdateSourceCommand}"
+                                        Padding="18,8">
+                                    <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft">
+                                        <Path Data="{StaticResource IconSettings}"
+                                              Stroke="{StaticResource TextPrimaryBrush}"
+                                              StrokeThickness="1.7"
+                                              Fill="Transparent"
+                                              Stretch="Uniform"
+                                              Width="14" Height="14"
+                                              VerticalAlignment="Center" />
+                                        <TextBlock Text="المصدر…"
+                                                   Margin="8,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <!-- ─── Card 3: General preferences ──────────────────── -->
                     <Border Style="{StaticResource CardBorder}" Padding="18" Margin="0,0,0,12">
                         <StackPanel>

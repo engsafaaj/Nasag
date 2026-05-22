@@ -1,14 +1,21 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
+using Nasag.Licensing.License;
 using Nasag.Models;
 using Nasag.Services;
+using Nasag.Services.Licensing;
+using Nasag.ViewModels.Licensing;
 using Nasag.ViewModels.Setup;
+using Nasag.Views.Licensing;
 using Nasag.Views.Pages.Settings;
 using Nasag.Views.Setup;
 
@@ -32,6 +39,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     private readonly ICurrentUserService _currentUser;
     private readonly IServiceProvider _services;
     private readonly IApplicationRestarter _restarter;
+    private readonly ILicenseService _license;
+    private readonly IUpdateService _updates;
 
     private bool _isInitializing = true;
     private bool _reloadInFlight;
@@ -46,7 +55,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         IBusyService busy,
         ICurrentUserService currentUser,
         IServiceProvider services,
-        IApplicationRestarter restarter)
+        IApplicationRestarter restarter,
+        ILicenseService license,
+        IUpdateService updates)
     {
         _repo = repo;
         _files = files;
@@ -58,11 +69,17 @@ public sealed partial class SettingsViewModel : PageViewModel
         _currentUser = currentUser;
         _services = services;
         _restarter = restarter;
+        _license = license;
+        _updates = updates;
 
         // Assign backing fields directly so OnXxxChanged partial methods do NOT fire
         // while the constructor runs (AI_INSTRUCTIONS section 13).
         _studentsSortAlphabetically = _prefs.Current.StudentsSortAlphabetically;
         _canManageSettings = _currentUser.HasPermission(Permission.ManageSettings);
+
+        _license.StatusChanged += (_, _) => RefreshLicenseInfo();
+        RefreshLicenseInfo();
+        RefreshUpdateInfo();
 
         _isInitializing = false;
     }
@@ -382,6 +399,160 @@ public sealed partial class SettingsViewModel : PageViewModel
         catch (Exception ex)
         {
             _errors.Report("تعذّر حذف السنة الدراسية", ex.Message, ex);
+        }
+    }
+
+    // ─── Phase 14 — Licensing card ──────────────────────────────────────
+    [ObservableProperty] private string _licenseStatusText = "—";
+    [ObservableProperty] private string _licenseCustomerName = "—";
+    [ObservableProperty] private string _licenseEdition = "—";
+    [ObservableProperty] private string _licenseExpiry = "—";
+    [ObservableProperty] private string _licenseStatusKind = "Info";
+
+    private void RefreshLicenseInfo()
+    {
+        var status = _license.Status;
+        switch (status)
+        {
+            case LicenseStatus.Activated act:
+                LicenseStatusText = "مفعَّل";
+                LicenseStatusKind = "Activated";
+                LicenseCustomerName = act.License?.CustomerName ?? "—";
+                LicenseEdition = act.License?.Edition.ToString() ?? "—";
+                LicenseExpiry = act.License?.ExpiresAtUtc.HasValue == true
+                    ? act.License.ExpiresAtUtc!.Value.ToLocalTime().ToString("yyyy-MM-dd")
+                    : "بدون انتهاء";
+                break;
+            case LicenseStatus.Trial t:
+                LicenseStatusText = $"تجربة — {t.DaysRemaining} يوم متبقٍ";
+                LicenseStatusKind = t.DaysRemaining <= 5 ? "Warning" : "Trial";
+                LicenseCustomerName = "—";
+                LicenseEdition = "تجربة";
+                LicenseExpiry = "—";
+                break;
+            case LicenseStatus.Expired exp:
+                LicenseStatusText = "منتهية الصلاحية";
+                LicenseStatusKind = "Danger";
+                LicenseCustomerName = exp.License?.CustomerName ?? "—";
+                LicenseEdition = exp.License?.Edition.ToString() ?? "—";
+                LicenseExpiry = exp.License?.ExpiresAtUtc?.ToLocalTime().ToString("yyyy-MM-dd") ?? "—";
+                break;
+            case LicenseStatus.Missing:
+                LicenseStatusText = "غير مفعَّل";
+                LicenseStatusKind = "Warning";
+                LicenseCustomerName = "—";
+                LicenseEdition = "—";
+                LicenseExpiry = "—";
+                break;
+            default:
+                LicenseStatusText = status?.GetType().Name ?? "—";
+                LicenseStatusKind = "Danger";
+                break;
+        }
+    }
+
+    [RelayCommand]
+    private void OpenActivation()
+    {
+        try
+        {
+            var win = _services.GetRequiredService<ActivationWindow>();
+            win.DataContext = _services.GetRequiredService<ActivationViewModel>();
+            win.Owner = Application.Current?.MainWindow;
+            win.ShowDialog();
+            RefreshLicenseInfo();
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر فتح نافذة التفعيل", ex.Message, ex);
+        }
+    }
+
+    [RelayCommand]
+    private void CopyMachineId()
+    {
+        try
+        {
+            Clipboard.SetText(_license.MachineFingerprintBlock);
+            _toasts.Success("تم النسخ", "تم نسخ بصمة الجهاز إلى الحافظة.");
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر نسخ بصمة الجهاز", ex.Message, ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeactivateAsync()
+    {
+        var ok = await _dialogs.ConfirmDestructiveAsync(
+            "إلغاء التفعيل",
+            "سيُحذف ملف الترخيص من هذا الجهاز. هل أنت متأكد؟",
+            okText: "إلغاء التفعيل").ConfigureAwait(true);
+        if (!ok) return;
+
+        try
+        {
+            _license.Deactivate();
+            _toasts.Warning("تم إلغاء التفعيل", "أزيلت بيانات الترخيص. أعد تشغيل البرنامج لتطبيق التغيير.");
+            RefreshLicenseInfo();
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر إلغاء التفعيل", ex.Message, ex);
+        }
+    }
+
+    // ─── Phase 14 — Updates card ────────────────────────────────────────
+    [ObservableProperty] private string _updateCurrentVersion = "—";
+    [ObservableProperty] private string _updateLastCheckedText = "—";
+    [ObservableProperty] private string _updateSourceText = "—";
+
+    private void RefreshUpdateInfo()
+    {
+        UpdateCurrentVersion = _updates.CurrentVersion;
+        UpdateLastCheckedText = _updates.LastCheckedUtc.HasValue
+            ? _updates.LastCheckedUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            : "لم يُجرَ فحص بعد";
+        UpdateSourceText = _updates.UpdateSource;
+    }
+
+    [RelayCommand]
+    private void OpenUpdates()
+    {
+        try
+        {
+            var win = _services.GetRequiredService<UpdateWindow>();
+            win.DataContext = _services.GetRequiredService<UpdateViewModel>();
+            win.Owner = Application.Current?.MainWindow;
+            win.ShowDialog();
+            RefreshUpdateInfo();
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر فتح نافذة التحديثات", ex.Message, ex);
+        }
+    }
+
+    [RelayCommand]
+    private void PickUpdateSource()
+    {
+        try
+        {
+            var dlg = new Nasag.Views.Licensing.UpdateSourceDialog(_updates.UpdateSource ?? "")
+            {
+                Owner = System.Windows.Application.Current?.MainWindow
+            };
+            if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultValue))
+            {
+                _updates.SetUpdateSource(dlg.ResultValue);
+                _toasts.Success("تم الحفظ", $"مصدر التحديثات: {dlg.ResultValue}");
+                RefreshUpdateInfo();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errors.Report("تعذّر تحديد مصدر التحديثات", ex.Message, ex);
         }
     }
 

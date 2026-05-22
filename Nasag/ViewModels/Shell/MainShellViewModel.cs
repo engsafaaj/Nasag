@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Nasag.Licensing.License;
 using Nasag.Models;
 using Nasag.Services;
+using Nasag.Services.Licensing;
 using Nasag.ViewModels.Pages;
 
 namespace Nasag.ViewModels.Shell;
@@ -13,6 +15,7 @@ public partial class MainShellViewModel : ObservableObject
     private readonly IConnectionMonitor _connection;
     private readonly IAppInfoService _appInfo;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILicenseService _license;
 
     [ObservableProperty]
     private object? _currentPage;
@@ -44,18 +47,25 @@ public partial class MainShellViewModel : ObservableObject
     public string UserInitial => _currentUser.Initial;
     public string? UserRoleName => _currentUser.User?.Role?.NameAr;
 
+    [ObservableProperty] private string _licenseBadgeText = "—";
+    [ObservableProperty] private string _licenseBadgeKind = "Info"; // Trial | Activated | Warning | Danger
+
     public ObservableCollection<NavigationItem> NavigationItems { get; } = new();
 
     public MainShellViewModel(
         INavigationService navigation,
         IConnectionMonitor connection,
         IAppInfoService appInfo,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILicenseService license)
     {
         _navigation = navigation;
         _connection = connection;
         _appInfo = appInfo;
         _currentUser = currentUser;
+        _license = license;
+        _license.StatusChanged += (_, _) => RefreshLicenseBadge();
+        RefreshLicenseBadge();
 
         RebuildNavigationItems();
 
@@ -164,6 +174,47 @@ public partial class MainShellViewModel : ObservableObject
         IsDisconnected = !_connection.IsConnected;
         if (_connection.LastErrorMessage is { Length: > 0 } msg)
             ConnectionErrorMessage = msg;
+    }
+
+    private void RefreshLicenseBadge()
+    {
+        var status = _license.Status;
+        switch (status)
+        {
+            case LicenseStatus.Trial t:
+                LicenseBadgeText = $"تجربة — {t.DaysRemaining} يوم";
+                LicenseBadgeKind = t.DaysRemaining <= 5 ? "Warning" : "Trial";
+                break;
+            case LicenseStatus.Activated act:
+                var name = act.License?.CustomerName;
+                LicenseBadgeText = string.IsNullOrWhiteSpace(name) ? "مفعَّل" : $"مفعَّل — {name}";
+                LicenseBadgeKind = "Activated";
+                break;
+            case LicenseStatus.Expired:
+                LicenseBadgeText = "منتهية الصلاحية";
+                LicenseBadgeKind = "Danger";
+                break;
+            case LicenseStatus.TamperedClock:
+                LicenseBadgeText = "ساعة النظام";
+                LicenseBadgeKind = "Danger";
+                break;
+            case LicenseStatus.MachineMismatch:
+                LicenseBadgeText = "جهاز مختلف";
+                LicenseBadgeKind = "Danger";
+                break;
+            case LicenseStatus.InvalidSignature:
+                LicenseBadgeText = "توقيع غير صحيح";
+                LicenseBadgeKind = "Danger";
+                break;
+            case LicenseStatus.Missing:
+                LicenseBadgeText = "غير مفعَّل";
+                LicenseBadgeKind = "Warning";
+                break;
+            default:
+                LicenseBadgeText = "—";
+                LicenseBadgeKind = "Info";
+                break;
+        }
     }
 }
 

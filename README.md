@@ -170,4 +170,60 @@ dotnet run
 
 ---
 
+## ملاحظات للمطوّرين (المرحلة 14)
+
+تتضمن المرحلة 14 نظام ترخيص متكامل، تحديثات عبر Velopack، وتعتيم الكود بواسطة Obfuscar.
+
+### المشاريع في الحل (Nasag.slnx)
+
+- **Nasag** — تطبيق WPF الرئيسي. يستضيف بوابة الترخيص وقائمة الإعدادات.
+- **Nasag.Licensing** — مكتبة Class Library تحوي بصمة الجهاز، تواقيع ECDSA، التجربة وكاشف العبث.
+- **NasaqVendor** — أداة المورّد لإصدار ملفات `.naslic` للزبائن.
+- **NasaqPackager** — أداة تجميع/توقيع إصدارات Velopack.
+
+### المتطلبات قبل البناء
+
+```powershell
+dotnet tool install -g vpk
+dotnet tool install -g Obfuscar.Console
+```
+
+تأكّد أن `vpk` و `obfuscar.console` ضمن `PATH`.
+
+### مفاتيح ECDSA
+
+- المفتاح العام: `Nasag/Resources/issuer.public.key` (مُضمَّن بصورة Embedded Resource باسم منطقي `Nasag.issuer.public.key`).
+- المفتاح الخاص للتطوير: `dev-issuer.private.key` في جذر المستودع — يستخدمه `NasaqVendor` لتوقيع ملفات الترخيص. **لا تضعه في إنتاج عميل.**
+- لتوليد زوج جديد: شغّل أداة `KeyGen` المؤقّتة (انظر سجل المرحلة 14) أو استخدم `Nasag.Licensing.Cryptography.EcdsaSigner.GenerateKeyPair()`.
+
+### إصدار ترخيص جديد
+
+استخدم تطبيق `NasaqVendor`:
+
+1. افتح `NasaqVendor`.
+2. ألصق كتلة بصمة الجهاز التي يرسلها الزبون (5 تجزئات).
+3. عبّئ الحقول: اسم الزبون، الإصدار، تاريخ الانتهاء، المزايا.
+4. اضغط «إصدار ترخيص» — سيُحفظ ملف `.naslic` وقّعه `Nasag.Licensing` بـ ECDSA-P256.
+5. أرسل الملف إلى الزبون. يثبّته من «الإعدادات → إدارة الترخيص → تفعيل».
+
+### إصدار نسخة جديدة من البرنامج
+
+```powershell
+# 1) حدّث الإصدار في Nasag/Nasag.csproj
+# 2) شغّل سكربت البناء:
+./build-installer.ps1 -Version 1.15.0
+```
+
+السكربت ينفّذ بالتسلسل:
+
+1. `dotnet publish` في وضع Release بدون رموز تنقيح.
+2. `Obfuscar.Console` لتعتيم Nasag.dll و Nasag.Licensing.dll (يستمر بدون تعتيم إن فشلت).
+3. `vpk pack` لتجميع مثبت Velopack تحت `Releases/Customer/`.
+
+### النشر إلى الزبائن
+
+استخدم `NasaqPackager` لرفع المحتوى (`Releases/Customer/`) إلى مجلد مصدر التحديثات لدى كل زبون. التطبيق يستهلكها عبر `Velopack.Sources.SimpleFileSource`.
+
+---
+
 نَسَق © 2026 — جميع الحقوق محفوظة.

@@ -3,6 +3,19 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# --- Nasaq Phase 14 secrets — NEVER commit ---
+# ECDSA private key used by NasaqVendor to sign .naslic licenses.
+# If this leaks, anyone can forge valid licenses.
+*.private.key
+dev-issuer.private.key
+issuer.private.key
+issuer.key
+
+# Build/publish output (Velopack pipeline)
+artifacts/
+publish/
+Releases/
+
 # User-specific files
 *.rsuser
 *.suo

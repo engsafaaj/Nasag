@@ -18,6 +18,12 @@ public sealed class UserPreferences
     public string? BackupFolder { get; set; }
 
     /// <summary>
+    /// Phase 14 — مجلد مصدر تحديثات Velopack (محلي أو مشاركة شبكية).
+    /// عند القيمة null تُستخدم القيمة الافتراضية <c>%LOCALAPPDATA%\Nasaq\Updates</c>.
+    /// </summary>
+    public string? UpdateSourceFolder { get; set; }
+
+    /// <summary>
     /// كلمة المرور المحفوظة عند تفعيل «تذكّرني» — مُشفَّرة بـ DPAPI
     /// (CurrentUser scope) ثم Base64. لا تُخزَّن أبداً بنص واضح.
     /// </summary>

@@ -38,6 +38,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
@@ -121,8 +122,64 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- License badge (Phase 14) -->
+                    <Border Grid.Column="3"
+                            CornerRadius="{StaticResource RadiusSm}"
+                            Padding="10,6"
+                            Margin="10,0,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding LicenseBadgeKind}" Value="Activated">
+                                        <Setter Property="Background" Value="{StaticResource SuccessSoftBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding LicenseBadgeKind}" Value="Trial">
+                                        <Setter Property="Background" Value="{StaticResource InfoSoftBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding LicenseBadgeKind}" Value="Warning">
+                                        <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding LicenseBadgeKind}" Value="Danger">
+                                        <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconShield}"
+                                  StrokeThickness="1.6"
+                                  Fill="Transparent"
+                                  Stretch="Uniform"
+                                  Width="14" Height="14"
+                                  VerticalAlignment="Center">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="Stroke" Value="{StaticResource InfoBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding LicenseBadgeKind}" Value="Activated">
+                                                <Setter Property="Stroke" Value="{StaticResource SuccessBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding LicenseBadgeKind}" Value="Warning">
+                                                <Setter Property="Stroke" Value="{StaticResource WarningBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding LicenseBadgeKind}" Value="Danger">
+                                                <Setter Property="Stroke" Value="{StaticResource DangerBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <TextBlock Text="{Binding LicenseBadgeText}"
+                                       Style="{StaticResource BodyTextStyle}"
+                                       FontWeight="Medium"
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Border>
+
                     <!-- Search box -->
-                    <Border Grid.Column="4"
+                    <Border Grid.Column="5"
                             Background="#F5F7FB"
                             CornerRadius="{StaticResource RadiusSm}"
                             Padding="10,0"
@@ -151,7 +208,7 @@
                         </Grid>
                     </Border>
 
-                    <Button Grid.Column="5"
+                    <Button Grid.Column="6"
                             Style="{StaticResource IconButton}">
                         <Path Data="{StaticResource IconBell}"
                               Stroke="{StaticResource TextSecondaryBrush}"
@@ -160,7 +217,7 @@
                               Stretch="Uniform" />
                     </Button>
 
-                    <Button Grid.Column="6"
+                    <Button Grid.Column="7"
                             Style="{StaticResource IconButton}"
                             Margin="6,0,0,0"
                             ToolTip="تسجيل الخروج"
